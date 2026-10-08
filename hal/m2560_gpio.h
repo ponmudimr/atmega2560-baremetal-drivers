@@ -22,7 +22,6 @@
  * port : port letter 'A'..'L' (no 'I')
  * pin  : pin number 0..7
  * dir  : M2560_DIR_IN, M2560_DIR_OUT or M2560_DIR_IN_PULLUP
- * returns nothing
  */
 void m2560_gpio_dir(char port, unsigned char pin, unsigned char dir);
 
@@ -30,7 +29,6 @@ void m2560_gpio_dir(char port, unsigned char pin, unsigned char dir);
  * m2560_gpio_set - make an output pin high (5V)
  * port : port letter 'A'..'L'
  * pin  : pin number 0..7
- * returns nothing
  */
 void m2560_gpio_set(char port, unsigned char pin);
 
