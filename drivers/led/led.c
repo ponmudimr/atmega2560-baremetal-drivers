@@ -1,91 +1,79 @@
 /*
- * led.c - LED driver, ids and pins are in board.h
+ * led.c - LED driver, any pin, LED on = pin high
  * Author: Ponmudi
  */
 
-#include "board.h"
 #include "gpio.h"
 #include "led.h"
 
-/* get port letter for an LED id, 0 if wrong */
-static char led_port(unsigned char id)
-{
-    switch (id)
-    {
-        case LED_SAFE:     return LED_SAFE_PORT;
-        case LED_CAUTION:  return LED_CAUTION_PORT;
-        case LED_WARNING:  return LED_WARNING_PORT;
-        case LED_STOP:     return LED_STOP_PORT;
-        case LED_OCCUPIED: return LED_OCCUPIED_PORT;
-        default:           return 0;   /* wrong id */
-    }
-}
+/* port and pin of each added LED */
+static char led_port[LED_MAX];
+static unsigned char led_pin[LED_MAX];
 
-/* get pin number for an LED id */
-static unsigned char led_pin(unsigned char id)
-{
-    switch (id)
-    {
-        case LED_SAFE:     return LED_SAFE_PIN;
-        case LED_CAUTION:  return LED_CAUTION_PIN;
-        case LED_WARNING:  return LED_WARNING_PIN;
-        case LED_STOP:     return LED_STOP_PIN;
-        case LED_OCCUPIED: return LED_OCCUPIED_PIN;
-        default:           return 0;
-    }
-}
+/* how many LEDs are added */
+static unsigned char led_count = 0;
 
-/* set all LED pins as output, all off */
-void led_init(void)
+/* add an LED on port/pin, starts off, returns id or LED_NONE */
+unsigned char led_init(char port, unsigned char pin)
 {
     unsigned char id;
 
-    for (id = 0; id < LED_COUNT; id++)
+    /* wrong port/pin or table full */
+    if (port < 'A' || port > 'L' || port == 'I' || pin > 7 || led_count >= LED_MAX)
     {
-        gpio_dir(led_port(id), led_pin(id), GPIO_OUT);
-        gpio_clear(led_port(id), led_pin(id));   /* start off */
+        return LED_NONE;
     }
+
+    id = led_count;
+    led_port[id] = port;
+    led_pin[id] = pin;
+    led_count++;
+
+    gpio_dir(port, pin, GPIO_OUT);
+    gpio_clear(port, pin);   /* start off */
+
+    return id;
 }
 
-/* turn one LED on */
+/* turn LED on */
 void led_on(unsigned char id)
 {
-    if (led_port(id) == 0)
+    if (id >= led_count)
     {
         return;   /* wrong id */
     }
 
-    gpio_set(led_port(id), led_pin(id));
+    gpio_set(led_port[id], led_pin[id]);
 }
 
-/* turn one LED off */
+/* turn LED off */
 void led_off(unsigned char id)
 {
-    if (led_port(id) == 0)
+    if (id >= led_count)
     {
         return;
     }
 
-    gpio_clear(led_port(id), led_pin(id));
+    gpio_clear(led_port[id], led_pin[id]);
 }
 
-/* flip one LED */
+/* flip LED */
 void led_toggle(unsigned char id)
 {
-    if (led_port(id) == 0)
+    if (id >= led_count)
     {
         return;
     }
 
-    gpio_invert(led_port(id), led_pin(id));
+    gpio_invert(led_port[id], led_pin[id]);
 }
 
-/* turn all LEDs off */
+/* turn all added LEDs off */
 void led_all_off(void)
 {
     unsigned char id;
 
-    for (id = 0; id < LED_COUNT; id++)
+    for (id = 0; id < led_count; id++)
     {
         led_off(id);
     }

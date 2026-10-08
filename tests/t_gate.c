@@ -3,6 +3,7 @@
  * Author: Ponmudi
  */
 
+#include "board.h"
 #include "led.h"
 #include "ir.h"
 #include "ultra.h"
@@ -12,8 +13,9 @@
 int main(void)
 {
     unsigned int cm;
+    unsigned char occupied_led;
 
-    led_init();
+    occupied_led = led_init(LED_OCCUPIED_PORT, LED_OCCUPIED_PIN);
     ir_init();
     ultra_init();
     seg7_init();
@@ -23,12 +25,12 @@ int main(void)
     {
         if (ir_is_occupied())
         {
-            led_on(LED_OCCUPIED);
+            led_on(occupied_led);
             seg7_show_dash();
         }
         else
         {
-            led_off(LED_OCCUPIED);
+            led_off(occupied_led);
 
             cm = ultra_get_cm();
             if (cm > 99)

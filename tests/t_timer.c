@@ -3,14 +3,16 @@
  * Author: Ponmudi
  */
 
+#include "board.h"
 #include "led.h"
 #include "timer.h"
 
 int main(void)
 {
     unsigned long last = 0;
+    unsigned char safe;
 
-    led_init();
+    safe = led_init(LED_SAFE_PORT, LED_SAFE_PIN);
     timer_init();
 
     while (1)
@@ -18,7 +20,7 @@ int main(void)
         if ((timer_millis() - last) >= 1000)
         {
             last = last + 1000;    /* keep steady steps */
-            led_toggle(LED_SAFE);
+            led_toggle(safe);
         }
     }
 

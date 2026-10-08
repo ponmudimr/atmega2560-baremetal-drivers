@@ -1,20 +1,13 @@
 /*
- * board.h - pin map and options for the parking board
+ * board.h - this project's wiring and options, used by tests/app only
+ *           (drivers do not include it, they get pins from init)
  * Author: Ponmudi
  */
 
 #ifndef BOARD_H
 #define BOARD_H
 
-/* LED ids */
-#define LED_SAFE           0
-#define LED_CAUTION        1
-#define LED_WARNING        2
-#define LED_STOP           3
-#define LED_OCCUPIED       4
-#define LED_COUNT          5
-
-/* LED pins, each LED can be on any port */
+/* LED pins */
 #define LED_SAFE_PORT      'A'
 #define LED_SAFE_PIN       0   /* PA0 = D22 */
 #define LED_CAUTION_PORT   'A'

@@ -3,22 +3,29 @@
  * Author: Ponmudi
  */
 
+#include "board.h"
 #include "led.h"
 #include "sw.h"
 #include "timer.h"
 
 int main(void)
 {
-    unsigned char id;
+    unsigned char leds[5];
+    unsigned char i;
 
-    led_init();
+    /* order: safe, caution, warning, stop, occupied */
+    leds[0] = led_init(LED_SAFE_PORT, LED_SAFE_PIN);
+    leds[1] = led_init(LED_CAUTION_PORT, LED_CAUTION_PIN);
+    leds[2] = led_init(LED_WARNING_PORT, LED_WARNING_PIN);
+    leds[3] = led_init(LED_STOP_PORT, LED_STOP_PIN);
+    leds[4] = led_init(LED_OCCUPIED_PORT, LED_OCCUPIED_PIN);
     sw_init();
     timer_init();
 
     /* LEDs on one by one */
-    for (id = 0; id < LED_COUNT; id++)
+    for (i = 0; i < 5; i++)
     {
-        led_on(id);
+        led_on(leds[i]);
         timer_delay_ms(300);
     }
 
@@ -28,11 +35,11 @@ int main(void)
     {
         if (sw_is_pressed(SW_1))
         {
-            led_on(LED_STOP);
+            led_on(leds[3]);   /* STOP */
         }
         else
         {
-            led_off(LED_STOP);
+            led_off(leds[3]);
         }
     }
 
