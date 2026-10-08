@@ -26,7 +26,7 @@ int main(void)
 
     while (1)
     {
-        if (sw_is_pressed())
+        if (sw_is_pressed(SW_1))
         {
             led_on(LED_STOP);
         }
