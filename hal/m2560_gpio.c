@@ -10,6 +10,7 @@
  * Registers used : DDRA..DDRL, PORTA..PORTL, PINA..PINL
  *           see datasheet: I/O-Ports, Register Description
  * Author  : Ponmudi
+ * Author  : Pranesh
  */
 
 #include <avr/io.h>
