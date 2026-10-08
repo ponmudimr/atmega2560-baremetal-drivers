@@ -1,5 +1,5 @@
 /*
- * m2560_regs.h - ATmega2560 port registers by address
+ * regs.h - ATmega2560 registers by address
  * Author: Ponmudi
  */
 

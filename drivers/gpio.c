@@ -1,15 +1,15 @@
 /*
- * m2560_gpio.c - GPIO driver for ATmega2560
+ * gpio.c - GPIO driver for ATmega2560
  * Author: Ponmudi
  * Author: Pranesh
  * Author: Kavin
  */
 
-#include "m2560_regs.h"
-#include "m2560_gpio.h"
+#include "regs.h"
+#include "gpio.h"
 
 /* get DDR register for a port, 0 if wrong */
-static volatile unsigned char *m2560_ddr_reg(char port)
+static volatile unsigned char *gpio_ddr_reg(char port)
 {
     switch (port)
     {
@@ -29,7 +29,7 @@ static volatile unsigned char *m2560_ddr_reg(char port)
 }
 
 /* get PORT register for a port, 0 if wrong */
-static volatile unsigned char *m2560_port_reg(char port)
+static volatile unsigned char *gpio_port_reg(char port)
 {
     switch (port)
     {
@@ -49,7 +49,7 @@ static volatile unsigned char *m2560_port_reg(char port)
 }
 
 /* get PIN register for a port, 0 if wrong */
-static volatile unsigned char *m2560_pin_reg(char port)
+static volatile unsigned char *gpio_pin_reg(char port)
 {
     switch (port)
     {
@@ -69,10 +69,10 @@ static volatile unsigned char *m2560_pin_reg(char port)
 }
 
 /* set pin as input, output or pull-up */
-void m2560_gpio_dir(char port, unsigned char pin, unsigned char dir)
+void gpio_dir(char port, unsigned char pin, unsigned char dir)
 {
-    volatile unsigned char *ddr = m2560_ddr_reg(port);
-    volatile unsigned char *out = m2560_port_reg(port);
+    volatile unsigned char *ddr = gpio_ddr_reg(port);
+    volatile unsigned char *out = gpio_port_reg(port);
 
     /* wrong port or pin, do nothing */
     if (ddr == 0 || out == 0 || pin > 7)
@@ -80,11 +80,11 @@ void m2560_gpio_dir(char port, unsigned char pin, unsigned char dir)
         return;
     }
 
-    if (dir == M2560_DIR_OUT)
+    if (dir == GPIO_OUT)
     {
         *ddr |= (1 << pin);    /* set pin as output */
     }
-    else if (dir == M2560_DIR_IN_PULLUP)
+    else if (dir == GPIO_IN_PULLUP)
     {
         *ddr &= ~(1 << pin);   /* set pin as input */
         *out |= (1 << pin);    /* turn on pull-up */
@@ -97,9 +97,9 @@ void m2560_gpio_dir(char port, unsigned char pin, unsigned char dir)
 }
 
 /* make pin high */
-void m2560_gpio_set(char port, unsigned char pin)
+void gpio_set(char port, unsigned char pin)
 {
-    volatile unsigned char *out = m2560_port_reg(port);
+    volatile unsigned char *out = gpio_port_reg(port);
 
     if (out == 0 || pin > 7)
     {
@@ -110,9 +110,9 @@ void m2560_gpio_set(char port, unsigned char pin)
 }
 
 /* make pin low */
-void m2560_gpio_clear(char port, unsigned char pin)
+void gpio_clear(char port, unsigned char pin)
 {
-    volatile unsigned char *out = m2560_port_reg(port);
+    volatile unsigned char *out = gpio_port_reg(port);
 
     if (out == 0 || pin > 7)
     {
@@ -123,9 +123,9 @@ void m2560_gpio_clear(char port, unsigned char pin)
 }
 
 /* read pin, returns 1 or 0 (0 if wrong port/pin) */
-unsigned char m2560_gpio_get(char port, unsigned char pin)
+unsigned char gpio_get(char port, unsigned char pin)
 {
-    volatile unsigned char *in = m2560_pin_reg(port);
+    volatile unsigned char *in = gpio_pin_reg(port);
 
     if (in == 0 || pin > 7)
     {
@@ -144,9 +144,9 @@ unsigned char m2560_gpio_get(char port, unsigned char pin)
 }
 
 /* flip pin */
-void m2560_gpio_invert(char port, unsigned char pin)
+void gpio_invert(char port, unsigned char pin)
 {
-    volatile unsigned char *out = m2560_port_reg(port);
+    volatile unsigned char *out = gpio_port_reg(port);
 
     if (out == 0 || pin > 7)
     {
