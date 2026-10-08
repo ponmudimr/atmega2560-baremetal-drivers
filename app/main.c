@@ -1,30 +1,38 @@
 /*
- * main.c - blink the LED on pin 13 (PB7, on-board "L" LED) every 500 ms
+ * main.c - blink the LED on pin 13 (PB7, on-board "L" LED), for-loop delay
  * Author: Ponmudi
  */
 
-#include "led.h"
-#include "timer.h"
+#include "gpio.h"
 
-#define BLINK_MS  500   /* time between toggles */
+#define LED_PORT  'B'
+#define LED_PIN   7     /* D13 = PB7 */
+
+/* wait about ms milliseconds, not exact */
+static void blink_wait_ms(unsigned int ms)
+{
+    unsigned int i;
+    volatile unsigned int count;   /* volatile, so loop is kept */
+
+    for (i = 0; i < ms; i++)
+    {
+        /* ~20 cycles x 800 = ~16000 cycles = ~1 ms at 16 MHz */
+        for (count = 0; count < 800; count++)
+        {
+        }
+    }
+}
 
 int main(void)
 {
-    unsigned char led13;
-    unsigned long last;
+    gpio_dir(LED_PORT, LED_PIN, GPIO_OUT);
 
-    led13 = led_init('B', 7);   /* D13 = PB7 */
-    timer_init();               /* 1 ms tick */
-
-    last = timer_millis();
-
-    while (1)
+    for (;;)
     {
-        if (timer_elapsed(last, BLINK_MS))
-        {
-            last = last + BLINK_MS;   /* keep steady steps */
-            led_toggle(led13);
-        }
+        gpio_set(LED_PORT, LED_PIN);     /* LED on */
+        blink_wait_ms(500);
+        gpio_clear(LED_PORT, LED_PIN);   /* LED off */
+        blink_wait_ms(500);
     }
 
     return 0;
