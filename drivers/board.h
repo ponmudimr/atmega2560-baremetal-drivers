@@ -19,13 +19,9 @@
 #define LED_OCCUPIED_PORT  'A'
 #define LED_OCCUPIED_PIN   4   /* PA4 = D26 */
 
-/* switch ids, switch to GND, pull-up on */
-#define SW_1               0
-#define SW_COUNT           1
-
-/* switch pins */
-#define SW_1_PORT          'E'
-#define SW_1_PIN           4   /* PE4 = D2 */
+/* push switch to GND (active low) */
+#define SW_PORT            'E'
+#define SW_PIN             4   /* PE4 = D2 */
 
 /* 7-seg: a..g,dp = PC0..PC7 (D37..D30) */
 #define SEG7_SEG_PORT      'C'

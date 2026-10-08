@@ -1,76 +1,87 @@
 /*
- * sw.c - push switch driver, switch to GND, ids and pins in board.h
+ * sw.c - push switch driver, any pin
  * Author: Ponmudi
  */
 
-#include "board.h"
 #include "gpio.h"
 #include "timer.h"
 #include "sw.h"
 
 #define SW_DEBOUNCE_MS  20
 
-/* last raw level seen, per switch */
-static unsigned char sw_last_raw[SW_COUNT];
+/* pin and type of each added switch */
+static char sw_port[SW_MAX];
+static unsigned char sw_pin[SW_MAX];
+static unsigned char sw_low[SW_MAX];   /* 1 = active low */
 
-/* level that stayed 20 ms, per switch */
-static unsigned char sw_stable[SW_COUNT];
+/* debounce state, per switch */
+static unsigned char sw_last_raw[SW_MAX];
+static unsigned char sw_stable[SW_MAX];
+static unsigned long sw_change_time[SW_MAX];
 
-/* time of last raw change, per switch */
-static unsigned long sw_change_time[SW_COUNT];
+/* how many switches are added */
+static unsigned char sw_count = 0;
 
-/* get port letter for a switch id, 0 if wrong */
-static char sw_port(unsigned char id)
-{
-    switch (id)
-    {
-        case SW_1: return SW_1_PORT;
-        /* new switch: add one more case here */
-        default:   return 0;   /* wrong id */
-    }
-}
-
-/* get pin number for a switch id */
-static unsigned char sw_pin(unsigned char id)
-{
-    switch (id)
-    {
-        case SW_1: return SW_1_PIN;
-        default:   return 0;
-    }
-}
-
-/* set switch pins as input with pull-up, starts timer */
-void sw_init(void)
+/* add a switch, starts timer, returns id or SW_NONE */
+unsigned char sw_init(char port, unsigned char pin, unsigned char active_low)
 {
     unsigned char id;
 
+    /* wrong port/pin or table full */
+    if (port < 'A' || port > 'L' || port == 'I' || pin > 7 || sw_count >= SW_MAX)
+    {
+        return SW_NONE;
+    }
+
+    id = sw_count;
+    sw_port[id] = port;
+    sw_pin[id] = pin;
+    sw_low[id] = active_low;
+    sw_last_raw[id] = 0;
+    sw_stable[id] = 0;
+    sw_change_time[id] = 0;
+    sw_count++;
+
+    if (active_low)
+    {
+        gpio_dir(port, pin, GPIO_IN_PULLUP);   /* pin high until pressed */
+    }
+    else
+    {
+        gpio_dir(port, pin, GPIO_IN);          /* outside pull-down needed */
+    }
+
     timer_init();   /* debounce needs timer_millis */
 
-    for (id = 0; id < SW_COUNT; id++)
-    {
-        gpio_dir(sw_port(id), sw_pin(id), GPIO_IN_PULLUP);
-        sw_last_raw[id] = 0;
-        sw_stable[id] = 0;
-        sw_change_time[id] = 0;
-    }
+    return id;
 }
 
 /* 1 while pressed right now (no debounce), 0 if not or wrong id */
 unsigned char sw_is_pressed(unsigned char id)
 {
-    if (sw_port(id) == 0)
+    unsigned char level;
+
+    if (id >= sw_count)
     {
         return 0;
     }
 
-    /* pressed pulls pin to 0 */
-    if (gpio_get(sw_port(id), sw_pin(id)) == 0)
+    level = gpio_get(sw_port[id], sw_pin[id]);
+
+    if (sw_low[id])
     {
-        return 1;
+        if (level == 0)
+        {
+            return 1;   /* pressed pulls pin to 0 */
+        }
+        return 0;
     }
     else
     {
+        if (level == 1)
+        {
+            return 1;   /* pressed pulls pin to 1 */
+        }
         return 0;
     }
 }
@@ -80,7 +91,7 @@ unsigned char sw_was_pressed(unsigned char id)
 {
     unsigned char raw;
 
-    if (sw_port(id) == 0)
+    if (id >= sw_count)
     {
         return 0;
     }

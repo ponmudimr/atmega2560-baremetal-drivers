@@ -11,6 +11,7 @@
 int main(void)
 {
     unsigned char leds[5];
+    unsigned char key;
     unsigned char i;
 
     /* order: safe, caution, warning, stop, occupied */
@@ -19,7 +20,7 @@ int main(void)
     leds[2] = led_init(LED_WARNING_PORT, LED_WARNING_PIN);
     leds[3] = led_init(LED_STOP_PORT, LED_STOP_PIN);
     leds[4] = led_init(LED_OCCUPIED_PORT, LED_OCCUPIED_PIN);
-    sw_init();
+    key = sw_init(SW_PORT, SW_PIN, SW_ACTIVE_LOW);
     timer_init();
 
     /* LEDs on one by one */
@@ -33,7 +34,7 @@ int main(void)
 
     while (1)
     {
-        if (sw_is_pressed(SW_1))
+        if (sw_is_pressed(key))
         {
             led_on(leds[3]);   /* STOP */
         }
