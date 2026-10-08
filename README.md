@@ -83,7 +83,7 @@ app/main.c        the parking app (Day 2, empty for now)
 drivers/          all the drivers, one folder each
   regs.h          register addresses (from the datasheet), used by all drivers
   board.h         pin map, LED/switch ids and options, used by all drivers
-  gpio/           gpio.c/.h   pin and whole-port control, all ports A..L
+  gpio/           gpio.c/.h   pin control, all ports A..L
   led/            led.c/.h    the 5 status LEDs
   sw/             sw.c/.h     the push button
   timer/          timer.c/.h  time keeping: milliseconds and delays
@@ -119,9 +119,6 @@ all pins are inputs after reset.
 | `gpio_set(port, pin)` / `gpio_clear(port, pin)` | pin high / low |
 | `gpio_get(port, pin)` | read pin, 0 or 1 |
 | `gpio_invert(port, pin)` | flip pin |
-| `gpio_port_dir(port, mask)` | direction of all 8 pins, bit 1 = output |
-| `gpio_port_write(port, value)` | write all 8 pins |
-| `gpio_port_read(port)` | read all 8 pins |
 
 **led**: ids `LED_SAFE`, `LED_CAUTION`, `LED_WARNING`, `LED_STOP`, `LED_OCCUPIED` (`LED_COUNT` = 5), in board.h.
 

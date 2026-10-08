@@ -29,13 +29,4 @@ unsigned char gpio_get(char port, unsigned char pin);
 /* flip pin */
 void gpio_invert(char port, unsigned char pin);
 
-/* set direction of whole port, bit 1 = output */
-void gpio_port_dir(char port, unsigned char mask);
-
-/* write whole port */
-void gpio_port_write(char port, unsigned char value);
-
-/* read whole port, 0 if wrong port */
-unsigned char gpio_port_read(char port);
-
 #endif

@@ -83,12 +83,24 @@ static void seg7_digit(unsigned char pos, unsigned char on)
 /* write 8 segment bits, 1 = segment on */
 static void seg7_write_segments(unsigned char pattern)
 {
+    unsigned char bit;
+
     if (SEG7_COMMON_ANODE)
     {
         pattern = ~pattern;   /* anode: 0 lights segment */
     }
 
-    gpio_port_write(SEG7_SEG_PORT, pattern);
+    for (bit = 0; bit < 8; bit++)
+    {
+        if (pattern & (1 << bit))
+        {
+            gpio_set(SEG7_SEG_PORT, bit);
+        }
+        else
+        {
+            gpio_clear(SEG7_SEG_PORT, bit);
+        }
+    }
 }
 
 /* Timer0 compare A = vector No.22 (p.101), gcc counts from 0 -> 21 */
@@ -125,7 +137,12 @@ void __vector_21(void)
 /* set pins, start 2 ms refresh, interrupts on */
 void seg7_init(void)
 {
-    gpio_port_dir(SEG7_SEG_PORT, 0xFF);        /* all 8 segment pins out */
+    unsigned char bit;
+
+    for (bit = 0; bit < 8; bit++)
+    {
+        gpio_dir(SEG7_SEG_PORT, bit, GPIO_OUT);   /* segment pins out */
+    }
     seg7_write_segments(0x00);
 
     gpio_dir(SEG7_DIGIT_PORT, SEG7_DIGIT1_PIN, GPIO_OUT);
