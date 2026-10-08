@@ -3,6 +3,8 @@
 #
 # make TEST=t_seg7          build tests/t_seg7.c
 # make flash TEST=t_seg7    build and upload
+# make app                  build app/main.c
+# make flash-app            build app/main.c and upload
 # make clean                delete build/
 #
 # CH340 clone boards: make flash TEST=t_seg7 PORT=/dev/ttyUSB0
@@ -46,7 +48,20 @@ build/$(TEST).hex: build/$(TEST).elf
 flash: build/$(TEST).hex
 	avrdude -p m2560 -c wiring -P $(PORT) -b $(BAUD) -D -U flash:w:build/$(TEST).hex
 
+# the application in app/main.c
+build/app.elf: app/main.c $(DRV_SRC) $(wildcard drivers/*.h drivers/*/*.h) | build
+	$(CC) $(CFLAGS) -o $@ app/main.c $(DRV_SRC)
+
+build/app.hex: build/app.elf
+	$(OBJCOPY) -O ihex -R .eeprom $< $@
+	$(SIZE) --format=avr --mcu=$(MCU) $<
+
+app: build/app.hex
+
+flash-app: build/app.hex
+	avrdude -p m2560 -c wiring -P $(PORT) -b $(BAUD) -D -U flash:w:build/app.hex
+
 clean:
 	rm -rf build
 
-.PHONY: all flash clean
+.PHONY: all flash app flash-app clean
