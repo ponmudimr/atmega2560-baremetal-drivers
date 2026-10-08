@@ -80,18 +80,18 @@ call driver functions. This is what the hackathon asks for.
 
 ```
 app/main.c        the parking app (Day 2, empty for now)
-drivers/          all the drivers
-  regs.h          register addresses (from the datasheet)
-  board.h         which part is on which pin (the pin map)
-  gpio.c/.h       basic pin control: make pin input/output, set, clear, read
-  led.c/.h        the 5 status LEDs
-  sw.c/.h         the push button
-  timer.c/.h      time keeping: milliseconds and delays
-  seg7.c/.h       the 2-digit number display
-  ir.c/.h         IR sensor: is the slot occupied?
-  ultra.c/.h      ultrasonic sensor: distance in cm
-  pwm.c/.h        buzzer sound
-  adc.c/.h        read a voltage (the knob / potentiometer)
+drivers/          all the drivers, one folder each
+  regs.h          register addresses (from the datasheet), used by all drivers
+  board.h         which part is on which pin (the pin map), used by all drivers
+  gpio/           gpio.c/.h   basic pin control: make pin input/output, set, clear, read
+  led/            led.c/.h    the 5 status LEDs
+  sw/             sw.c/.h     the push button
+  timer/          timer.c/.h  time keeping: milliseconds and delays
+  seg7/           seg7.c/.h   the 2-digit number display
+  ir/             ir.c/.h     IR sensor: is the slot occupied?
+  ultra/          ultra.c/.h  ultrasonic sensor: distance in cm
+  pwm/            pwm.c/.h    buzzer sound
+  adc/            adc.c/.h    read a voltage (the knob / potentiometer)
 tests/            one small test program for each driver
 Makefile          the build instructions (used by the `make` command)
 ```
@@ -99,10 +99,10 @@ Makefile          the build instructions (used by the `make` command)
 ### Suggested reading order
 
 1. `drivers/board.h`: see where every part is connected.
-2. `drivers/gpio.c`: everything else is built on this.
-3. `drivers/led.c` and `drivers/sw.c`: the simplest drivers.
-4. `drivers/timer.c`: the first one with an interrupt.
-5. `drivers/seg7.c`, `ir.c`, `ultra.c`, `pwm.c`, `adc.c`.
+2. `drivers/gpio/gpio.c`: everything else is built on this.
+3. `drivers/led/led.c` and `drivers/sw/sw.c`: the simplest drivers.
+4. `drivers/timer/timer.c`: the first one with an interrupt.
+5. `drivers/seg7/`, `drivers/ir/`, `drivers/ultra/`, `drivers/pwm/`, `drivers/adc/`.
 6. Each test in `tests/`: short programs showing how to use a driver.
 
 ### Driver functions (the API)
@@ -245,7 +245,7 @@ Build each one with `make TEST=<name>` and upload with `make flash TEST=<name>`.
 | Upload says "can't open device" or timeouts | Check the port with `ls /dev/ttyACM* /dev/ttyUSB*` and pass it with `PORT=...`. Try another USB cable (some cables are charge-only) |
 | An LED never lights | It may be backwards: the long leg goes to the resistor side, the short leg to GND |
 | 7-segment shows nothing or wrong segments | Check that it is common cathode and that the transistors are wired as in the table |
-| OCCUPIED LED is on when the slot is empty | Your IR module may output HIGH for "car there". The check in `drivers/ir.c` must be flipped |
+| OCCUPIED LED is on when the slot is empty | Your IR module may output HIGH for "car there". The check in `drivers/ir/ir.c` must be flipped |
 | Distance is always `--` | Check TRIG/ECHO are not swapped and the sensor has 5V and GND |
 
 Nothing here has been tested on a real board yet. Every test builds with

@@ -22,16 +22,21 @@ SIZE    = avr-size
 # No avr-libc headers are used. avr-gcc still links its startup
 # code (stack setup, vector table). That is part of the compiler
 # toolchain, not a peripheral library.
-CFLAGS  = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os -Wall -Wextra -Idrivers
 
-DRV_SRC = $(wildcard drivers/*.c)
+# each driver has its own folder: drivers/gpio, drivers/adc, ...
+# regs.h and board.h stay in drivers/ (used by all drivers)
+DRV_DIRS = $(sort $(dir $(wildcard drivers/*/*.c)))
+DRV_SRC  = $(wildcard drivers/*/*.c)
+DRV_INC  = -Idrivers $(addprefix -I,$(DRV_DIRS))
+
+CFLAGS  = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os -Wall -Wextra $(DRV_INC)
 
 all: build/$(TEST).hex
 
 build:
 	mkdir -p build
 
-build/$(TEST).elf: tests/$(TEST).c $(DRV_SRC) $(wildcard drivers/*.h) | build
+build/$(TEST).elf: tests/$(TEST).c $(DRV_SRC) $(wildcard drivers/*.h drivers/*/*.h) | build
 	$(CC) $(CFLAGS) -o $@ tests/$(TEST).c $(DRV_SRC)
 
 build/$(TEST).hex: build/$(TEST).elf
