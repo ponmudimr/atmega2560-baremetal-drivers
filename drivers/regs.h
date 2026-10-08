@@ -67,4 +67,19 @@
 #define M2560_DDRL   (*(volatile unsigned char *)0x10A)   /* DDRL, p.100 */
 #define M2560_PORTL  (*(volatile unsigned char *)0x10B)   /* PORTL, p.100 */
 
+/* status reg, I/O addr 0x3F */
+#define M2560_SREG   (*(volatile unsigned char *)0x5F)   /* SREG, p.13 */
+#define M2560_BIT_I       7   /* global interrupt on */
+
+/* timer1 */
+#define M2560_TCCR1A (*(volatile unsigned char *)0x80)   /* TCCR1A, p.154 */
+#define M2560_TCCR1B (*(volatile unsigned char *)0x81)   /* TCCR1B, p.156 */
+#define M2560_OCR1AL (*(volatile unsigned char *)0x88)   /* OCR1AL, p.159 */
+#define M2560_OCR1AH (*(volatile unsigned char *)0x89)   /* OCR1AH, p.159 */
+#define M2560_TIMSK1 (*(volatile unsigned char *)0x6F)   /* TIMSK1, p.161 */
+#define M2560_BIT_WGM12   3   /* TCCR1B, CTC mode */
+#define M2560_BIT_CS11    1   /* TCCR1B, clk/64 with CS10 */
+#define M2560_BIT_CS10    0   /* TCCR1B */
+#define M2560_BIT_OCIE1A  1   /* TIMSK1, compare A interrupt */
+
 #endif
