@@ -52,6 +52,7 @@
 /* IR sensor */
 #define IR_PORT            'L'
 #define IR_PIN             3   /* PL3 = D46 */
+#define IR_ACTIVE_LOW      1   /* 1 = sensor gives 0 when car is there */
 
 /* buzzer on OC4A */
 #define BUZZER_PORT        'H'
