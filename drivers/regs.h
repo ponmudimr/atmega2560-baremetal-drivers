@@ -86,4 +86,16 @@
 #define M2560_BIT_WGM42   3   /* TCCR4B */
 #define M2560_BIT_CS41    1   /* TCCR4B, clk/8 */
 
+/* ADC */
+#define M2560_ADCL   (*(volatile unsigned char *)0x78)   /* ADCL, p.286 */
+#define M2560_ADCH   (*(volatile unsigned char *)0x79)   /* ADCH, p.286 */
+#define M2560_ADCSRA (*(volatile unsigned char *)0x7A)   /* ADCSRA, p.285 */
+#define M2560_ADMUX  (*(volatile unsigned char *)0x7C)   /* ADMUX, p.281 */
+#define M2560_BIT_REFS0   6   /* ADMUX, AVcc reference */
+#define M2560_BIT_ADEN    7   /* ADCSRA, ADC on */
+#define M2560_BIT_ADSC    6   /* ADCSRA, start, 0 when done */
+#define M2560_BIT_ADPS2   2   /* ADCSRA, ADPS2..0 = 111 -> /128 */
+#define M2560_BIT_ADPS1   1
+#define M2560_BIT_ADPS0   0
+
 #endif
