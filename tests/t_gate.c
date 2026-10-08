@@ -13,12 +13,13 @@
 int main(void)
 {
     unsigned int cm;
+    unsigned char rear;
     unsigned char occupied_led;
     unsigned char slot_ir;
 
     occupied_led = led_init(LED_OCCUPIED_PORT, LED_OCCUPIED_PIN);
     slot_ir = ir_init(IR_PORT, IR_PIN, IR_TYPE);
-    ultra_init();
+    rear = ultra_init(ULTRA_TRIG_PORT, ULTRA_TRIG_PIN, ULTRA_ECHO_PORT, ULTRA_ECHO_PIN);
     seg7_init();
     timer_init();
 
@@ -33,7 +34,7 @@ int main(void)
         {
             led_off(occupied_led);
 
-            cm = ultra_get_cm();
+            cm = ultra_get_cm(rear);
             if (cm > 99)
             {
                 seg7_show_dash();   /* too far or no echo */

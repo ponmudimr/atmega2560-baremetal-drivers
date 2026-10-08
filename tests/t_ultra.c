@@ -3,6 +3,7 @@
  * Author: Ponmudi
  */
 
+#include "board.h"
 #include "ultra.h"
 #include "seg7.h"
 #include "timer.h"
@@ -10,14 +11,15 @@
 int main(void)
 {
     unsigned int cm;
+    unsigned char rear;
 
-    ultra_init();
+    rear = ultra_init(ULTRA_TRIG_PORT, ULTRA_TRIG_PIN, ULTRA_ECHO_PORT, ULTRA_ECHO_PIN);
     seg7_init();
     timer_init();
 
     while (1)
     {
-        cm = ultra_get_cm();
+        cm = ultra_get_cm(rear);
 
         if (cm > 99)
         {

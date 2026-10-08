@@ -34,8 +34,9 @@
 #define SEG7_DIGIT_ON_LEVEL  1   /* pin level that turns a digit on (1 = high, via transistor) */
 
 /* ultrasonic */
-#define ULTRA_PORT         'L'
+#define ULTRA_TRIG_PORT    'L'
 #define ULTRA_TRIG_PIN     2   /* PL2 = D47 */
+#define ULTRA_ECHO_PORT    'L'
 #define ULTRA_ECHO_PIN     1   /* PL1 = D48 */
 
 /* IR sensor */
