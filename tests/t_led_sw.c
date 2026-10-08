@@ -16,17 +16,13 @@ int main(void)
     timer_init();
 
     /* LEDs on one by one */
-    for (id = LED_SAFE; id <= LED_OCCUPIED; id++)
+    for (id = 0; id < LED_COUNT; id++)
     {
         led_on(id);
         timer_delay_ms(300);
     }
 
-    /* all off */
-    for (id = LED_SAFE; id <= LED_OCCUPIED; id++)
-    {
-        led_off(id);
-    }
+    led_all_off();
 
     while (1)
     {
