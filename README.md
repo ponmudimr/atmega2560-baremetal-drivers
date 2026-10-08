@@ -82,7 +82,7 @@ call driver functions. This is what the hackathon asks for.
 app/main.c        the parking app (Day 2, empty for now)
 drivers/          all the drivers, one folder each
   regs.h          register addresses (from the datasheet), used by all drivers
-  board.h         pin map, LED/switch ids and options, used by all drivers
+  board.h         this project's wiring and options (only tests/app use it)
   gpio/           gpio.c/.h   pin control, all ports A..L
   led/            led.c/.h    the 5 status LEDs
   sw/             sw.c/.h     the push button
@@ -98,7 +98,7 @@ Makefile          the build instructions (used by the `make` command)
 
 ### Suggested reading order
 
-1. `drivers/board.h`: see where every part is connected.
+1. `drivers/board.h`: see where every part is connected in this project.
 2. `drivers/gpio/gpio.c`: everything else is built on this.
 3. `drivers/led/led.c` and `drivers/sw/sw.c`: the simplest drivers.
 4. `drivers/timer/timer.c`: the first one with an interrupt.
@@ -107,8 +107,30 @@ Makefile          the build instructions (used by the `make` command)
 
 ### Driver functions (the API)
 
+The drivers are **general**: they do not know about this parking project.
+You tell each driver which pins to use when you call its init function,
+so you can use them in any ATmega2560 project. Only `drivers/board.h`
+(this project's wiring) and the tests know where our parts are.
+
+Drivers that can have more than one part (LED, switch, IR, ultrasonic)
+give back an **id** from init. You keep the id and use it in later calls:
+
+```c
+unsigned char stop_led;
+unsigned char key;
+
+stop_led = led_init('A', 3);               /* LED on PA3 */
+key = sw_init('E', 4, SW_ACTIVE_LOW);      /* switch on PE4 to GND */
+
+if (sw_is_pressed(key))
+{
+    led_on(stop_led);
+}
+```
+
 Wrong arguments (wrong port, pin, id, channel) never crash: the function
-does nothing, or returns 0 (`ULTRA_NO_ECHO` for the ultrasonic).
+does nothing, or returns 0. A full table or wrong pin in init returns
+`LED_NONE` / `SW_NONE` / `IR_NONE` / `ULTRA_NONE` (255).
 
 **gpio**: port is `'A'`..`'L'` (no `'I'`), pin is 0..7. GPIO needs no init,
 all pins are inputs after reset.
@@ -120,19 +142,19 @@ all pins are inputs after reset.
 | `gpio_get(port, pin)` | read pin, 0 or 1 |
 | `gpio_invert(port, pin)` | flip pin |
 
-**led**: ids `LED_SAFE`, `LED_CAUTION`, `LED_WARNING`, `LED_STOP`, `LED_OCCUPIED` (`LED_COUNT` = 5), in board.h.
+**led**: up to `LED_MAX` (8) LEDs, LED on = pin high.
 
 | Function | What it does |
 |----------|--------------|
-| `led_init()` | all LED pins output, all off |
+| `led_init(port, pin)` | pin output, LED off, returns id |
 | `led_on(id)` / `led_off(id)` / `led_toggle(id)` | one LED on / off / flip |
-| `led_all_off()` | all LEDs off |
+| `led_all_off()` | all added LEDs off |
 
-**sw**: ids `SW_1` (`SW_COUNT` = 1), in board.h. Switch goes to GND, pull-up is on.
+**sw**: up to `SW_MAX` (4) switches.
 
 | Function | What it does |
 |----------|--------------|
-| `sw_init()` | switch pins input with pull-up, also starts the timer |
+| `sw_init(port, pin, type)` | `SW_ACTIVE_LOW` (switch to GND, pull-up on) or `SW_ACTIVE_HIGH` (switch to 5V, needs a pull-down resistor). Also starts the timer. Returns id |
 | `sw_is_pressed(id)` | 1 while pressed right now (no debounce) |
 | `sw_was_pressed(id)` | 1 once per press, 20 ms debounce. Call it often in the loop |
 
@@ -149,7 +171,7 @@ all pins are inputs after reset.
 
 | Function | What it does |
 |----------|--------------|
-| `seg7_init()` | pins, start refresh |
+| `seg7_init(seg_port, d1_port, d1_pin, d2_port, d2_pin, type, digit_on)` | segments a..g,dp on pins 0..7 of `seg_port`, left digit on d1, right digit on d2. `type` = `SEG7_CATHODE` or `SEG7_ANODE`. `digit_on` = pin level that turns a digit on (1 if a transistor drives it). Starts refresh |
 | `seg7_show_number(num)` | 0..99, 0..9 uses the right digit only, above 99 shows `--` |
 | `seg7_show_digit(pos, value)` | 0..15 (0-9, A-F) on one digit |
 | `seg7_show_dash()` | `--` |
@@ -157,22 +179,22 @@ all pins are inputs after reset.
 | `seg7_set_dp(pos, on)` | dot on/off |
 | `seg7_show_raw(pos, pattern)` | own pattern, bit0 = a ... bit6 = g, bit7 = dot |
 
-**ir**
+**ir**: IR obstacle sensor, up to `IR_MAX` (4).
 
 | Function | What it does |
 |----------|--------------|
-| `ir_init()` | pin input with pull-up |
-| `ir_read_raw()` | pin level now, 0 or 1 |
-| `ir_is_occupied()` | 1 only if 3 reads (~1 ms apart) all say occupied |
+| `ir_init(port, pin, type)` | `IR_ACTIVE_LOW` (output 0 when object seen, most modules) or `IR_ACTIVE_HIGH`. Returns id |
+| `ir_read_raw(id)` | pin level now, 0 or 1 |
+| `ir_is_detected(id)` | 1 only if 3 reads (~1 ms apart) all see an object |
 
-**ultra**: HC-SR04 on Timer5.
+**ultra**: HC-SR04, up to `ULTRA_MAX` (4), all share Timer5 (one measurement at a time).
 
 | Function | What it does |
 |----------|--------------|
-| `ultra_init()` | pins, start Timer5 |
-| `ultra_get_us()` | echo time in us, `ULTRA_NO_ECHO_US` (65535) on timeout |
-| `ultra_get_cm()` | distance in cm, `ULTRA_NO_ECHO` (999) on timeout |
-| `ultra_get_cm_avg(n)` | average of n reads (1..8), 60 ms apart, timeouts skipped, 999 if all fail |
+| `ultra_init(trig_port, trig_pin, echo_port, echo_pin)` | pins, start Timer5, returns id |
+| `ultra_get_us(id)` | echo time in us, `ULTRA_NO_ECHO_US` (65535) on timeout |
+| `ultra_get_cm(id)` | distance in cm, `ULTRA_NO_ECHO` (999) on timeout |
+| `ultra_get_cm_avg(id, n)` | average of n reads (1..8), 60 ms apart, timeouts skipped, 999 if all fail |
 
 **pwm**: Timer4, channels `'A'` = D6, `'B'` = D7, `'C'` = D8. Default 2 kHz.
 
@@ -229,20 +251,19 @@ parts must share the same GND.
 | Buzzer + | D6 | PH3 (OC4A, PWM channel A) | buzzer - -> GND |
 | Potentiometer middle leg | A0 | ADC0 | outer legs -> 5V and GND |
 
-### Options in board.h
+### This project's settings (board.h)
 
-If your parts work differently, change these lines in `drivers/board.h`
+`drivers/board.h` holds this project's wiring. The tests pass these values
+to the init functions. If your parts work differently, change these lines
 (no driver code needs to change):
 
-| Option | Default | Meaning |
-|--------|---------|---------|
-| `SEG7_COMMON_ANODE` | 0 | 0 = common cathode (segment on = HIGH), 1 = common anode |
-| `SEG7_DIGIT_ON_LEVEL` | 1 | pin level that turns a digit on. 1 = through an NPN transistor, 0 = common cathode pin straight to the board |
-| `IR_ACTIVE_LOW` | 1 | 1 = IR output is LOW when a car is there (most modules) |
+| Setting | Default | Meaning |
+|---------|---------|---------|
+| `SEG7_TYPE` | `SEG7_CATHODE` | or `SEG7_ANODE` for a common anode display |
+| `SEG7_DIGIT_ON` | 1 | pin level that turns a digit on. 1 = through an NPN transistor, 0 = common cathode pin straight to the board |
+| `IR_TYPE` | `IR_ACTIVE_LOW` | or `IR_ACTIVE_HIGH` if your IR module gives 1 when a car is there |
 
 To move a part to another pin, change its `_PORT` / `_PIN` line in board.h.
-To add a second switch, add `SW_2`, its port/pin, raise `SW_COUNT`, and add
-one `case` in `drivers/sw/sw.c`.
 
 ---
 
@@ -322,8 +343,8 @@ Build each one with `make TEST=<name>` and upload with `make flash TEST=<name>`.
 | Upload says "permission denied" | Add yourself to `dialout` (step 5) and log in again |
 | Upload says "can't open device" or timeouts | Check the port with `ls /dev/ttyACM* /dev/ttyUSB*` and pass it with `PORT=...`. Try another USB cable (some cables are charge-only) |
 | An LED never lights | It may be backwards: the long leg goes to the resistor side, the short leg to GND |
-| 7-segment shows nothing or wrong segments | Check the transistors are wired as in the table. Check `SEG7_COMMON_ANODE` and `SEG7_DIGIT_ON_LEVEL` in board.h |
-| OCCUPIED LED is on when the slot is empty | Your IR module may output HIGH for "car there". Set `IR_ACTIVE_LOW` to 0 in board.h |
+| 7-segment shows nothing or wrong segments | Check the transistors are wired as in the table. Check `SEG7_TYPE` and `SEG7_DIGIT_ON` in board.h |
+| OCCUPIED LED is on when the slot is empty | Your IR module may output HIGH for "car there". Set `IR_TYPE` to `IR_ACTIVE_HIGH` in board.h |
 | Distance is always `--` | Check TRIG/ECHO are not swapped and the sensor has 5V and GND |
 
 Nothing here has been tested on a real board yet. Every test builds with
