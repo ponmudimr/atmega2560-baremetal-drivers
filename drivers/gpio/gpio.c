@@ -1,5 +1,5 @@
 /*
- * gpio.c - GPIO driver for ATmega2560
+ * gpio.c - GPIO driver for ATmega2560, ports A..L (no I)
  * Author: Ponmudi
  * Author: Pranesh
  * Author: Kavin
@@ -14,10 +14,15 @@ static volatile unsigned char *gpio_ddr_reg(char port)
     switch (port)
     {
         case 'A': return &M2560_DDRA;
+        case 'B': return &M2560_DDRB;
         case 'C': return &M2560_DDRC;
+        case 'D': return &M2560_DDRD;
         case 'E': return &M2560_DDRE;
+        case 'F': return &M2560_DDRF;
         case 'G': return &M2560_DDRG;
         case 'H': return &M2560_DDRH;
+        case 'J': return &M2560_DDRJ;   /* no port I */
+        case 'K': return &M2560_DDRK;
         case 'L': return &M2560_DDRL;
         default:  return 0;       /* wrong port */
     }
@@ -29,10 +34,15 @@ static volatile unsigned char *gpio_port_reg(char port)
     switch (port)
     {
         case 'A': return &M2560_PORTA;
+        case 'B': return &M2560_PORTB;
         case 'C': return &M2560_PORTC;
+        case 'D': return &M2560_PORTD;
         case 'E': return &M2560_PORTE;
+        case 'F': return &M2560_PORTF;
         case 'G': return &M2560_PORTG;
         case 'H': return &M2560_PORTH;
+        case 'J': return &M2560_PORTJ;   /* no port I */
+        case 'K': return &M2560_PORTK;
         case 'L': return &M2560_PORTL;
         default:  return 0;
     }
@@ -44,10 +54,15 @@ static volatile unsigned char *gpio_pin_reg(char port)
     switch (port)
     {
         case 'A': return &M2560_PINA;
+        case 'B': return &M2560_PINB;
         case 'C': return &M2560_PINC;
+        case 'D': return &M2560_PIND;
         case 'E': return &M2560_PINE;
+        case 'F': return &M2560_PINF;
         case 'G': return &M2560_PING;
         case 'H': return &M2560_PINH;
+        case 'J': return &M2560_PINJ;   /* no port I */
+        case 'K': return &M2560_PINK;
         case 'L': return &M2560_PINL;
         default:  return 0;
     }
@@ -126,4 +141,56 @@ unsigned char gpio_get(char port, unsigned char pin)
     {
         return 0;
     }
+}
+
+/* flip pin */
+void gpio_invert(char port, unsigned char pin)
+{
+    volatile unsigned char *out = gpio_port_reg(port);
+
+    if (out == 0 || pin > 7)
+    {
+        return;
+    }
+
+    *out ^= (1 << pin);   /* flip this bit only */
+}
+
+/* set direction of whole port, bit 1 = output */
+void gpio_port_dir(char port, unsigned char mask)
+{
+    volatile unsigned char *ddr = gpio_ddr_reg(port);
+
+    if (ddr == 0)
+    {
+        return;
+    }
+
+    *ddr = mask;
+}
+
+/* write whole port */
+void gpio_port_write(char port, unsigned char value)
+{
+    volatile unsigned char *out = gpio_port_reg(port);
+
+    if (out == 0)
+    {
+        return;
+    }
+
+    *out = value;
+}
+
+/* read whole port, 0 if wrong port */
+unsigned char gpio_port_read(char port)
+{
+    volatile unsigned char *in = gpio_pin_reg(port);
+
+    if (in == 0)
+    {
+        return 0;
+    }
+
+    return *in;   /* real level of all 8 pins */
 }
