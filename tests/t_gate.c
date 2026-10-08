@@ -14,16 +14,17 @@ int main(void)
 {
     unsigned int cm;
     unsigned char occupied_led;
+    unsigned char slot_ir;
 
     occupied_led = led_init(LED_OCCUPIED_PORT, LED_OCCUPIED_PIN);
-    ir_init();
+    slot_ir = ir_init(IR_PORT, IR_PIN, IR_TYPE);
     ultra_init();
     seg7_init();
     timer_init();
 
     while (1)
     {
-        if (ir_is_occupied())
+        if (ir_is_detected(slot_ir))
         {
             led_on(occupied_led);
             seg7_show_dash();

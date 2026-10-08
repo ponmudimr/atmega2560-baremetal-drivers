@@ -41,7 +41,7 @@
 /* IR sensor */
 #define IR_PORT            'L'
 #define IR_PIN             3   /* PL3 = D46 */
-#define IR_ACTIVE_LOW      1   /* 1 = sensor gives 0 when car is there */
+#define IR_TYPE            IR_ACTIVE_LOW   /* or IR_ACTIVE_HIGH, from ir.h */
 
 /* buzzer on PWM channel A */
 #define BUZZER_PWM_CH      'A' /* OC4A = PH3 = D6 */
