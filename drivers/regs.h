@@ -105,7 +105,13 @@
 #define M2560_ICR4H  (*(volatile unsigned char *)0xA7)   /* ICR4H, p.161 */
 #define M2560_OCR4AL (*(volatile unsigned char *)0xA8)   /* OCR4AL, p.159 */
 #define M2560_OCR4AH (*(volatile unsigned char *)0xA9)   /* OCR4AH, p.159 */
+#define M2560_OCR4BL (*(volatile unsigned char *)0xAA)   /* OCR4BL, p.160 */
+#define M2560_OCR4BH (*(volatile unsigned char *)0xAB)   /* OCR4BH, p.160 */
+#define M2560_OCR4CL (*(volatile unsigned char *)0xAC)   /* OCR4CL, p.160 */
+#define M2560_OCR4CH (*(volatile unsigned char *)0xAD)   /* OCR4CH, p.160 */
 #define M2560_BIT_COM4A1  7   /* TCCR4A, OC4A non-inverting */
+#define M2560_BIT_COM4B1  5   /* TCCR4A, OC4B non-inverting */
+#define M2560_BIT_COM4C1  3   /* TCCR4A, OC4C non-inverting */
 #define M2560_BIT_WGM41   1   /* TCCR4A, mode 14 with WGM42, WGM43 */
 #define M2560_BIT_WGM43   4   /* TCCR4B */
 #define M2560_BIT_WGM42   3   /* TCCR4B */

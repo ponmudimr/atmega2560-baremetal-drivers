@@ -54,9 +54,8 @@
 #define IR_PIN             3   /* PL3 = D46 */
 #define IR_ACTIVE_LOW      1   /* 1 = sensor gives 0 when car is there */
 
-/* buzzer on OC4A */
-#define BUZZER_PORT        'H'
-#define BUZZER_PIN         3   /* PH3 = D6 */
+/* buzzer on PWM channel A */
+#define BUZZER_PWM_CH      'A' /* OC4A = PH3 = D6 */
 
 /* pot on A0 */
 #define POT_CHANNEL        0

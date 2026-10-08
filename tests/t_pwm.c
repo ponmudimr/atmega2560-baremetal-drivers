@@ -1,5 +1,5 @@
 /*
- * t_pwm.c - buzzer at 25%, 50%, 75% duty, 1 s each
+ * t_pwm.c - buzzer on channel A (D6) at 25%, 50%, 75% duty, 1 s each
  * Author: Ponmudi
  */
 
@@ -8,19 +8,19 @@
 
 int main(void)
 {
-    pwm_init();
+    pwm_init('A');
     timer_init();
-    pwm_on();
+    pwm_on('A');
 
     while (1)
     {
-        pwm_set_duty(25);
+        pwm_set_duty('A', 25);
         timer_delay_ms(1000);
 
-        pwm_set_duty(50);
+        pwm_set_duty('A', 50);
         timer_delay_ms(1000);
 
-        pwm_set_duty(75);
+        pwm_set_duty('A', 75);
         timer_delay_ms(1000);
     }
 

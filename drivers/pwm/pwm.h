@@ -1,21 +1,24 @@
 /*
- * pwm.h - 2 kHz PWM for buzzer on OC4A (Timer4)
+ * pwm.h - PWM on Timer4, channels 'A' (D6), 'B' (D7), 'C' (D8)
  * Author: Ponmudi
  */
 
 #ifndef PWM_H
 #define PWM_H
 
-/* set pin, start Timer4, output stays off */
-void pwm_init(void);
+/* set channel pin as output, start Timer4 once (2 kHz), output off */
+void pwm_init(char ch);
 
-/* duty in percent, 0..100 */
-void pwm_set_duty(unsigned char duty);
+/* frequency 31..65535 Hz, same for all 3 channels */
+void pwm_set_freq(unsigned int hz);
 
-/* connect PWM to pin */
-void pwm_on(void);
+/* duty 0..100 percent for one channel */
+void pwm_set_duty(char ch, unsigned char duty);
+
+/* connect PWM to the channel pin */
+void pwm_on(char ch);
 
 /* disconnect PWM, pin low */
-void pwm_off(void);
+void pwm_off(char ch);
 
 #endif
