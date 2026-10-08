@@ -20,7 +20,8 @@ int main(void)
     occupied_led = led_init(LED_OCCUPIED_PORT, LED_OCCUPIED_PIN);
     slot_ir = ir_init(IR_PORT, IR_PIN, IR_TYPE);
     rear = ultra_init(ULTRA_TRIG_PORT, ULTRA_TRIG_PIN, ULTRA_ECHO_PORT, ULTRA_ECHO_PIN);
-    seg7_init();
+    seg7_init(SEG7_SEG_PORT, SEG7_D1_PORT, SEG7_D1_PIN, SEG7_D2_PORT, SEG7_D2_PIN,
+              SEG7_TYPE, SEG7_DIGIT_ON);
     timer_init();
 
     while (1)

@@ -25,13 +25,12 @@
 
 /* 7-seg: a..g,dp = PC0..PC7 (D37..D30) */
 #define SEG7_SEG_PORT      'C'
-#define SEG7_DIGIT_PORT    'G'
-#define SEG7_DIGIT1_PIN    0   /* PG0 = D41, tens */
-#define SEG7_DIGIT2_PIN    1   /* PG1 = D40, ones */
-
-/* 7-seg options */
-#define SEG7_COMMON_ANODE    0   /* 0 = common cathode, 1 = common anode */
-#define SEG7_DIGIT_ON_LEVEL  1   /* pin level that turns a digit on (1 = high, via transistor) */
+#define SEG7_D1_PORT       'G'
+#define SEG7_D1_PIN        0   /* PG0 = D41, tens */
+#define SEG7_D2_PORT       'G'
+#define SEG7_D2_PIN        1   /* PG1 = D40, ones */
+#define SEG7_TYPE          SEG7_CATHODE   /* or SEG7_ANODE, from seg7.h */
+#define SEG7_DIGIT_ON      1   /* 1 = digit on when pin high (transistor) */
 
 /* ultrasonic */
 #define ULTRA_TRIG_PORT    'L'

@@ -3,6 +3,7 @@
  * Author: Ponmudi
  */
 
+#include "board.h"
 #include "seg7.h"
 #include "timer.h"
 
@@ -10,7 +11,8 @@ int main(void)
 {
     unsigned char count = 0;
 
-    seg7_init();
+    seg7_init(SEG7_SEG_PORT, SEG7_D1_PORT, SEG7_D1_PIN, SEG7_D2_PORT, SEG7_D2_PIN,
+              SEG7_TYPE, SEG7_DIGIT_ON);
     timer_init();
 
     while (1)

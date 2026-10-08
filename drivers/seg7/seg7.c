@@ -1,10 +1,9 @@
 /*
- * seg7.c - 2-digit 7-segment display, refreshed by Timer0
+ * seg7.c - 2-digit 7-segment display driver, any pins, refreshed by Timer0
  * Author: Ponmudi
  */
 
 #include "regs.h"
-#include "board.h"
 #include "gpio.h"
 #include "seg7.h"
 
@@ -43,17 +42,21 @@ static volatile unsigned char seg7_dp[2] = {0, 0};
 /* digit shown now, 0 or 1 */
 static volatile unsigned char seg7_pos = 0;
 
-/* get digit pin for a position */
-static unsigned char seg7_digit_pin(unsigned char pos)
+/* pins and options, saved by seg7_init */
+static char seg7_seg_port;                 /* a..g,dp on pins 0..7 */
+static char seg7_dig_port[2];              /* [0] = left, [1] = right */
+static unsigned char seg7_dig_pin[2];
+static unsigned char seg7_type;            /* SEG7_CATHODE or SEG7_ANODE */
+static unsigned char seg7_on_level;        /* pin level that turns a digit on */
+
+/* 1 if port letter and pin are valid */
+static unsigned char seg7_pin_ok(char port, unsigned char pin)
 {
-    if (pos == 0)
+    if (port < 'A' || port > 'L' || port == 'I' || pin > 7)
     {
-        return SEG7_DIGIT1_PIN;
+        return 0;
     }
-    else
-    {
-        return SEG7_DIGIT2_PIN;
-    }
+    return 1;
 }
 
 /* turn one digit on (1) or off (0) */
@@ -63,20 +66,20 @@ static void seg7_digit(unsigned char pos, unsigned char on)
 
     if (on)
     {
-        level = SEG7_DIGIT_ON_LEVEL;
+        level = seg7_on_level;
     }
     else
     {
-        level = !SEG7_DIGIT_ON_LEVEL;
+        level = !seg7_on_level;
     }
 
     if (level)
     {
-        gpio_set(SEG7_DIGIT_PORT, seg7_digit_pin(pos));
+        gpio_set(seg7_dig_port[pos], seg7_dig_pin[pos]);
     }
     else
     {
-        gpio_clear(SEG7_DIGIT_PORT, seg7_digit_pin(pos));
+        gpio_clear(seg7_dig_port[pos], seg7_dig_pin[pos]);
     }
 }
 
@@ -85,7 +88,7 @@ static void seg7_write_segments(unsigned char pattern)
 {
     unsigned char bit;
 
-    if (SEG7_COMMON_ANODE)
+    if (seg7_type == SEG7_ANODE)
     {
         pattern = ~pattern;   /* anode: 0 lights segment */
     }
@@ -94,11 +97,11 @@ static void seg7_write_segments(unsigned char pattern)
     {
         if (pattern & (1 << bit))
         {
-            gpio_set(SEG7_SEG_PORT, bit);
+            gpio_set(seg7_seg_port, bit);
         }
         else
         {
-            gpio_clear(SEG7_SEG_PORT, bit);
+            gpio_clear(seg7_seg_port, bit);
         }
     }
 }
@@ -134,19 +137,34 @@ void __vector_21(void)
     }
 }
 
-/* set pins, start 2 ms refresh, interrupts on */
-void seg7_init(void)
+/* save pins, start 2 ms refresh, interrupts on (wrong pins = nothing) */
+void seg7_init(char seg_port, char d1_port, unsigned char d1_pin,
+               char d2_port, unsigned char d2_pin,
+               unsigned char type, unsigned char digit_on_level)
 {
     unsigned char bit;
 
+    if (!seg7_pin_ok(seg_port, 0) || !seg7_pin_ok(d1_port, d1_pin) || !seg7_pin_ok(d2_port, d2_pin))
+    {
+        return;   /* wrong pins, display stays off */
+    }
+
+    seg7_seg_port = seg_port;
+    seg7_dig_port[0] = d1_port;
+    seg7_dig_pin[0] = d1_pin;
+    seg7_dig_port[1] = d2_port;
+    seg7_dig_pin[1] = d2_pin;
+    seg7_type = type;
+    seg7_on_level = digit_on_level;
+
     for (bit = 0; bit < 8; bit++)
     {
-        gpio_dir(SEG7_SEG_PORT, bit, GPIO_OUT);   /* segment pins out */
+        gpio_dir(seg7_seg_port, bit, GPIO_OUT);   /* segment pins out */
     }
     seg7_write_segments(0x00);
 
-    gpio_dir(SEG7_DIGIT_PORT, SEG7_DIGIT1_PIN, GPIO_OUT);
-    gpio_dir(SEG7_DIGIT_PORT, SEG7_DIGIT2_PIN, GPIO_OUT);
+    gpio_dir(d1_port, d1_pin, GPIO_OUT);
+    gpio_dir(d2_port, d2_pin, GPIO_OUT);
     seg7_digit(0, 0);                          /* digits off */
     seg7_digit(1, 0);
 
