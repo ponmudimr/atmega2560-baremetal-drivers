@@ -82,4 +82,13 @@
 #define M2560_BIT_CS10    0   /* TCCR1B */
 #define M2560_BIT_OCIE1A  1   /* TIMSK1, compare A interrupt */
 
+/* timer0 */
+#define M2560_TCCR0A (*(volatile unsigned char *)0x44)   /* TCCR0A, p.126 */
+#define M2560_TCCR0B (*(volatile unsigned char *)0x45)   /* TCCR0B, p.129 */
+#define M2560_OCR0A  (*(volatile unsigned char *)0x47)   /* OCR0A, p.130 */
+#define M2560_TIMSK0 (*(volatile unsigned char *)0x6E)   /* TIMSK0, p.131 */
+#define M2560_BIT_WGM01   1   /* TCCR0A, CTC mode */
+#define M2560_BIT_CS02    2   /* TCCR0B, clk/256 */
+#define M2560_BIT_OCIE0A  1   /* TIMSK0, compare A interrupt */
+
 #endif
