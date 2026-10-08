@@ -66,4 +66,11 @@
 #define M2560_BIT_CS02    2   /* TCCR0B, clk/256 */
 #define M2560_BIT_OCIE0A  1   /* TIMSK0, compare A interrupt */
 
+/* timer5 */
+#define M2560_TCCR5A (*(volatile unsigned char *)0x120)  /* TCCR5A, p.154 */
+#define M2560_TCCR5B (*(volatile unsigned char *)0x121)  /* TCCR5B, p.156 */
+#define M2560_TCNT5L (*(volatile unsigned char *)0x124)  /* TCNT5L, p.158 */
+#define M2560_TCNT5H (*(volatile unsigned char *)0x125)  /* TCNT5H, p.158 */
+#define M2560_BIT_CS51    1   /* TCCR5B, clk/8 */
+
 #endif
