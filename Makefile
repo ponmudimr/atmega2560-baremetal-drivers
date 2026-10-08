@@ -21,6 +21,12 @@ CC      = avr-gcc
 OBJCOPY = avr-objcopy
 SIZE    = avr-size
 
+# -mmcu=atmega2560 is still needed so the compiler knows the CPU
+# (instruction set, flash/RAM size, where the vector table goes).
+# Our code includes no avr-libc headers. avr-gcc still links its
+# startup code (sets up the stack, clears RAM, vector table that
+# jumps to __vector_N and then calls main). That is part of the
+# compiler toolchain, not a peripheral library.
 CFLAGS  = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os -Wall -Wextra -Ihal
 
 # all driver .c files in hal/

@@ -5,16 +5,16 @@
  *             DDRx  - direction (1 = output, 0 = input)
  *             PORTx - output level, or pull-up on/off when pin is input
  *             PINx  - the real level on the pin (read only for us)
- *           Ports A..G sit in I/O space, H..L sit in extended I/O
- *           space, but avr/io.h handles that for us.
- * Registers used : DDRA..DDRL, PORTA..PORTL, PINA..PINL
+ *           Ports A..G are at 0x20..0x34, ports H..L are in extended
+ *           I/O space at 0x100..0x10B. Addresses are in m2560_regs.h.
+ * Registers used : M2560_DDRA..L, M2560_PORTA..L, M2560_PINA..L
  *           see datasheet: I/O-Ports, Register Description
  * Author  : Ponmudi
  * Author  : Pranesh
  * Author  : Kavin
  */
 
-#include <avr/io.h>
+#include "m2560_regs.h"
 #include "m2560_gpio.h"
 
 /*
@@ -26,17 +26,17 @@ static volatile unsigned char *m2560_ddr_reg(char port)
 {
     switch (port)
     {
-        case 'A': return &DDRA;
-        case 'B': return &DDRB;
-        case 'C': return &DDRC;
-        case 'D': return &DDRD;
-        case 'E': return &DDRE;
-        case 'F': return &DDRF;
-        case 'G': return &DDRG;
-        case 'H': return &DDRH;
-        case 'J': return &DDRJ;   /* no port I on this chip */
-        case 'K': return &DDRK;
-        case 'L': return &DDRL;
+        case 'A': return &M2560_DDRA;
+        case 'B': return &M2560_DDRB;
+        case 'C': return &M2560_DDRC;
+        case 'D': return &M2560_DDRD;
+        case 'E': return &M2560_DDRE;
+        case 'F': return &M2560_DDRF;
+        case 'G': return &M2560_DDRG;
+        case 'H': return &M2560_DDRH;
+        case 'J': return &M2560_DDRJ;   /* no port I on this chip */
+        case 'K': return &M2560_DDRK;
+        case 'L': return &M2560_DDRL;
         default:  return 0;       /* wrong letter */
     }
 }
@@ -50,17 +50,17 @@ static volatile unsigned char *m2560_port_reg(char port)
 {
     switch (port)
     {
-        case 'A': return &PORTA;
-        case 'B': return &PORTB;
-        case 'C': return &PORTC;
-        case 'D': return &PORTD;
-        case 'E': return &PORTE;
-        case 'F': return &PORTF;
-        case 'G': return &PORTG;
-        case 'H': return &PORTH;
-        case 'J': return &PORTJ;
-        case 'K': return &PORTK;
-        case 'L': return &PORTL;
+        case 'A': return &M2560_PORTA;
+        case 'B': return &M2560_PORTB;
+        case 'C': return &M2560_PORTC;
+        case 'D': return &M2560_PORTD;
+        case 'E': return &M2560_PORTE;
+        case 'F': return &M2560_PORTF;
+        case 'G': return &M2560_PORTG;
+        case 'H': return &M2560_PORTH;
+        case 'J': return &M2560_PORTJ;
+        case 'K': return &M2560_PORTK;
+        case 'L': return &M2560_PORTL;
         default:  return 0;
     }
 }
@@ -74,17 +74,17 @@ static volatile unsigned char *m2560_pin_reg(char port)
 {
     switch (port)
     {
-        case 'A': return &PINA;
-        case 'B': return &PINB;
-        case 'C': return &PINC;
-        case 'D': return &PIND;
-        case 'E': return &PINE;
-        case 'F': return &PINF;
-        case 'G': return &PING;
-        case 'H': return &PINH;
-        case 'J': return &PINJ;
-        case 'K': return &PINK;
-        case 'L': return &PINL;
+        case 'A': return &M2560_PINA;
+        case 'B': return &M2560_PINB;
+        case 'C': return &M2560_PINC;
+        case 'D': return &M2560_PIND;
+        case 'E': return &M2560_PINE;
+        case 'F': return &M2560_PINF;
+        case 'G': return &M2560_PING;
+        case 'H': return &M2560_PINH;
+        case 'J': return &M2560_PINJ;
+        case 'K': return &M2560_PINK;
+        case 'L': return &M2560_PINL;
         default:  return 0;
     }
 }
