@@ -22,13 +22,13 @@ static void ultra_timer_clear(void)
 /* read Timer5 count */
 static unsigned int ultra_timer_read(void)
 {
-    unsigned char low;
-    unsigned char high;
+    unsigned char low_byte;
+    unsigned char high_byte;
 
-    low = M2560_TCNT5L;     /* low byte first */
-    high = M2560_TCNT5H;
+    low_byte = M2560_TCNT5L;    /* low byte first */
+    high_byte = M2560_TCNT5H;
 
-    return ((unsigned int)high << 8) | low;
+    return ((unsigned int)high_byte << 8) | low_byte;
 }
 
 /* set pins, start Timer5 */
