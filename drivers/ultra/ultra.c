@@ -1,5 +1,5 @@
 /*
- * ultra.c - ultrasonic sensor (HC-SR04 type), uses Timer5
+ * ultra.c - ultrasonic sensor (HC-SR04), uses Timer5
  * Author: Ponmudi
  */
 
@@ -31,6 +31,15 @@ static unsigned int ultra_timer_read(void)
     return ((unsigned int)high_byte << 8) | low_byte;
 }
 
+/* wait some Timer5 ticks (max 65535 = 32 ms) */
+static void ultra_wait_ticks(unsigned int ticks)
+{
+    ultra_timer_clear();
+    while (ultra_timer_read() < ticks)
+    {
+    }
+}
+
 /* set pins, start Timer5 */
 void ultra_init(void)
 {
@@ -42,17 +51,14 @@ void ultra_init(void)
     M2560_TCCR5B = (1 << M2560_BIT_CS51);     /* /8, timer runs */
 }
 
-/* measure distance in cm, 999 if no echo */
-unsigned int ultra_get_cm(void)
+/* echo pulse width in us, ULTRA_NO_ECHO_US on timeout */
+unsigned int ultra_get_us(void)
 {
     unsigned int ticks;
 
     /* 10 us trigger pulse */
-    ultra_timer_clear();
     gpio_set(ULTRA_PORT, ULTRA_TRIG_PIN);
-    while (ultra_timer_read() < ULTRA_TRIG_TICKS)
-    {
-    }
+    ultra_wait_ticks(ULTRA_TRIG_TICKS);
     gpio_clear(ULTRA_PORT, ULTRA_TRIG_PIN);
 
     /* wait echo high */
@@ -61,7 +67,7 @@ unsigned int ultra_get_cm(void)
     {
         if (ultra_timer_read() >= ULTRA_TIMEOUT_TICKS)
         {
-            return ULTRA_NO_ECHO;
+            return ULTRA_NO_ECHO_US;
         }
     }
 
@@ -71,11 +77,62 @@ unsigned int ultra_get_cm(void)
     {
         if (ultra_timer_read() >= ULTRA_TIMEOUT_TICKS)
         {
-            return ULTRA_NO_ECHO;
+            return ULTRA_NO_ECHO_US;
         }
     }
     ticks = ultra_timer_read();
 
-    /* cm = us / 58 = ticks / 116 */
-    return ticks / 116;
+    return ticks / 2;   /* 2 ticks = 1 us */
+}
+
+/* distance in cm, ULTRA_NO_ECHO on timeout */
+unsigned int ultra_get_cm(void)
+{
+    unsigned int us = ultra_get_us();
+
+    if (us == ULTRA_NO_ECHO_US)
+    {
+        return ULTRA_NO_ECHO;
+    }
+
+    /* sound: 58 us per cm, there and back */
+    return us / 58;
+}
+
+/* average cm of n reads (n 1..8), 60 ms apart, ULTRA_NO_ECHO if all fail */
+unsigned int ultra_get_cm_avg(unsigned char n)
+{
+    unsigned long sum = 0;
+    unsigned char good = 0;
+    unsigned char i;
+    unsigned int cm;
+
+    if (n < 1 || n > 8)
+    {
+        return ULTRA_NO_ECHO;   /* wrong n */
+    }
+
+    for (i = 0; i < n; i++)
+    {
+        cm = ultra_get_cm();
+        if (cm != ULTRA_NO_ECHO)
+        {
+            sum = sum + cm;   /* skip timeouts */
+            good++;
+        }
+
+        if (i < n - 1)
+        {
+            /* 60 ms so old echoes die out */
+            ultra_wait_ticks(ULTRA_TIMEOUT_TICKS);   /* 30 ms */
+            ultra_wait_ticks(ULTRA_TIMEOUT_TICKS);   /* 30 ms */
+        }
+    }
+
+    if (good == 0)
+    {
+        return ULTRA_NO_ECHO;
+    }
+
+    return (unsigned int)(sum / good);
 }
