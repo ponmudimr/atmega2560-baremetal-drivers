@@ -40,6 +40,10 @@
 #define SEG7_DIGIT1_PIN    0   /* PG0 = D41, tens */
 #define SEG7_DIGIT2_PIN    1   /* PG1 = D40, ones */
 
+/* 7-seg options */
+#define SEG7_COMMON_ANODE    0   /* 0 = common cathode, 1 = common anode */
+#define SEG7_DIGIT_ON_LEVEL  1   /* pin level that turns a digit on (1 = high, via transistor) */
+
 /* ultrasonic */
 #define ULTRA_PORT         'L'
 #define ULTRA_TRIG_PIN     2   /* PL2 = D47 */
