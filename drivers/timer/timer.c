@@ -9,6 +9,9 @@
 /* ms count, changed by the interrupt */
 static volatile unsigned long timer_ticks = 0;
 
+/* 1 after timer_init has run once */
+static unsigned char timer_started = 0;
+
 /* Timer1 compare A = vector No.18 (p.101), gcc counts from 0 -> 17 */
 /* signal = save regs and return with RETI */
 void __vector_17(void) __attribute__((signal, used, externally_visible));
@@ -17,9 +20,15 @@ void __vector_17(void)
     timer_ticks++;
 }
 
-/* start 1 ms tick, interrupts on */
+/* start 1 ms tick, interrupts on (safe to call again) */
 void timer_init(void)
 {
+    if (timer_started)
+    {
+        return;   /* already running, keep the count */
+    }
+    timer_started = 1;
+
     M2560_TCCR1A = 0;                      /* no output pins */
     M2560_TCCR1B = 0;                      /* timer stopped for now */
 
@@ -59,5 +68,19 @@ void timer_delay_ms(unsigned long ms)
     /* subtract works after rollover too */
     while ((timer_millis() - start) < ms)
     {
+    }
+}
+
+/* 1 if ms milliseconds passed since start (start = old timer_millis) */
+unsigned char timer_elapsed(unsigned long start, unsigned long ms)
+{
+    /* subtract works after rollover too */
+    if ((timer_millis() - start) >= ms)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
     }
 }
