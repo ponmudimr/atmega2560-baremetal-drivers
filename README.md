@@ -82,16 +82,16 @@ call driver functions. This is what the hackathon asks for.
 app/main.c        the parking app (Day 2, empty for now)
 drivers/          all the drivers, one folder each
   regs.h          register addresses (from the datasheet), used by all drivers
-  board.h         which part is on which pin (the pin map), used by all drivers
-  gpio/           gpio.c/.h   basic pin control: make pin input/output, set, clear, read
+  board.h         pin map, LED/switch ids and options, used by all drivers
+  gpio/           gpio.c/.h   pin and whole-port control, all ports A..L
   led/            led.c/.h    the 5 status LEDs
   sw/             sw.c/.h     the push button
   timer/          timer.c/.h  time keeping: milliseconds and delays
   seg7/           seg7.c/.h   the 2-digit number display
   ir/             ir.c/.h     IR sensor: is the slot occupied?
   ultra/          ultra.c/.h  ultrasonic sensor: distance in cm
-  pwm/            pwm.c/.h    buzzer sound
-  adc/            adc.c/.h    read a voltage (the knob / potentiometer)
+  pwm/            pwm.c/.h    PWM on D6/D7/D8 (buzzer sound)
+  adc/            adc.c/.h    read a voltage on A0..A15 (the knob / potentiometer)
 tests/            one small test program for each driver
 Makefile          the build instructions (used by the `make` command)
 ```
@@ -107,17 +107,93 @@ Makefile          the build instructions (used by the `make` command)
 
 ### Driver functions (the API)
 
-| Driver | Functions |
-|--------|-----------|
-| gpio | `gpio_dir(port, pin, dir)`, `gpio_set(port, pin)`, `gpio_clear(port, pin)`, `gpio_get(port, pin)` |
-| led | `led_init()`, `led_on(id)`, `led_off(id)`, with ids `LED_SAFE`, `LED_CAUTION`, `LED_WARNING`, `LED_STOP`, `LED_OCCUPIED` |
-| sw | `sw_init()`, `sw_is_pressed()` (1 = pressed) |
-| timer | `timer_init()`, `timer_millis()`, `timer_delay_ms(ms)` |
-| seg7 | `seg7_init()`, `seg7_show_number(0..99)`, `seg7_show_dash()` |
-| ir | `ir_init()`, `ir_is_occupied()` (1 = car there) |
-| ultra | `ultra_init()`, `ultra_get_cm()` (999 = no echo) |
-| pwm | `pwm_init()`, `pwm_set_duty(0..100)`, `pwm_on()`, `pwm_off()` |
-| adc | `adc_init()`, `adc_read(0..7)` (returns 0..1023) |
+Wrong arguments (wrong port, pin, id, channel) never crash: the function
+does nothing, or returns 0 (`ULTRA_NO_ECHO` for the ultrasonic).
+
+**gpio**: port is `'A'`..`'L'` (no `'I'`), pin is 0..7. GPIO needs no init,
+all pins are inputs after reset.
+
+| Function | What it does |
+|----------|--------------|
+| `gpio_dir(port, pin, dir)` | `GPIO_IN`, `GPIO_OUT` or `GPIO_IN_PULLUP` |
+| `gpio_set(port, pin)` / `gpio_clear(port, pin)` | pin high / low |
+| `gpio_get(port, pin)` | read pin, 0 or 1 |
+| `gpio_invert(port, pin)` | flip pin |
+| `gpio_port_dir(port, mask)` | direction of all 8 pins, bit 1 = output |
+| `gpio_port_write(port, value)` | write all 8 pins |
+| `gpio_port_read(port)` | read all 8 pins |
+
+**led**: ids `LED_SAFE`, `LED_CAUTION`, `LED_WARNING`, `LED_STOP`, `LED_OCCUPIED` (`LED_COUNT` = 5), in board.h.
+
+| Function | What it does |
+|----------|--------------|
+| `led_init()` | all LED pins output, all off |
+| `led_on(id)` / `led_off(id)` / `led_toggle(id)` | one LED on / off / flip |
+| `led_all_off()` | all LEDs off |
+
+**sw**: ids `SW_1` (`SW_COUNT` = 1), in board.h. Switch goes to GND, pull-up is on.
+
+| Function | What it does |
+|----------|--------------|
+| `sw_init()` | switch pins input with pull-up, also starts the timer |
+| `sw_is_pressed(id)` | 1 while pressed right now (no debounce) |
+| `sw_was_pressed(id)` | 1 once per press, 20 ms debounce. Call it often in the loop |
+
+**timer**: Timer1, 1 ms tick.
+
+| Function | What it does |
+|----------|--------------|
+| `timer_init()` | start the tick, interrupts on (safe to call twice) |
+| `timer_millis()` | milliseconds since start |
+| `timer_delay_ms(ms)` | wait (blocks) |
+| `timer_elapsed(start, ms)` | 1 if `ms` passed since `start` (non-blocking timing) |
+
+**seg7**: 2 digits, pos 0 = left (tens), pos 1 = right (ones). Timer0 refreshes it.
+
+| Function | What it does |
+|----------|--------------|
+| `seg7_init()` | pins, start refresh |
+| `seg7_show_number(num)` | 0..99, 0..9 uses the right digit only, above 99 shows `--` |
+| `seg7_show_digit(pos, value)` | 0..15 (0-9, A-F) on one digit |
+| `seg7_show_dash()` | `--` |
+| `seg7_blank()` | both digits off |
+| `seg7_set_dp(pos, on)` | dot on/off |
+| `seg7_show_raw(pos, pattern)` | own pattern, bit0 = a ... bit6 = g, bit7 = dot |
+
+**ir**
+
+| Function | What it does |
+|----------|--------------|
+| `ir_init()` | pin input with pull-up |
+| `ir_read_raw()` | pin level now, 0 or 1 |
+| `ir_is_occupied()` | 1 only if 3 reads (~1 ms apart) all say occupied |
+
+**ultra**: HC-SR04 on Timer5.
+
+| Function | What it does |
+|----------|--------------|
+| `ultra_init()` | pins, start Timer5 |
+| `ultra_get_us()` | echo time in us, `ULTRA_NO_ECHO_US` (65535) on timeout |
+| `ultra_get_cm()` | distance in cm, `ULTRA_NO_ECHO` (999) on timeout |
+| `ultra_get_cm_avg(n)` | average of n reads (1..8), 60 ms apart, timeouts skipped, 999 if all fail |
+
+**pwm**: Timer4, channels `'A'` = D6, `'B'` = D7, `'C'` = D8. Default 2 kHz.
+
+| Function | What it does |
+|----------|--------------|
+| `pwm_init(ch)` | pin output, start Timer4 (only the first time), output off |
+| `pwm_set_freq(hz)` | 31..65535 Hz, shared by all 3 channels |
+| `pwm_set_duty(ch, duty)` | 0..100 % |
+| `pwm_on(ch)` / `pwm_off(ch)` | connect PWM to the pin / disconnect and pin low |
+
+**adc**: AVcc (5V) reference, channels 0..15 = A0..A15.
+
+| Function | What it does |
+|----------|--------------|
+| `adc_init()` | ADC on |
+| `adc_read(ch)` | 0..1023 |
+| `adc_read_avg(ch, n)` | average of n reads (1..16) |
+| `adc_to_mv(raw)` | 0..1023 to 0..5000 mV |
 
 ---
 
@@ -153,18 +229,23 @@ parts must share the same GND.
 | Ultrasonic TRIG | D47 | PL2 | sensor VCC -> 5V, GND -> GND |
 | Ultrasonic ECHO | D48 | PL1 | |
 | IR sensor OUT | D46 | PL3 | sensor VCC -> 5V, GND -> GND |
-| Buzzer + | D6 | PH3 | buzzer - -> GND |
+| Buzzer + | D6 | PH3 (OC4A, PWM channel A) | buzzer - -> GND |
 | Potentiometer middle leg | A0 | ADC0 | outer legs -> 5V and GND |
 
-### Things the drivers expect
+### Options in board.h
 
-These are fixed in the code. If your parts work the other way, the driver
-code must be changed:
+If your parts work differently, change these lines in `drivers/board.h`
+(no driver code needs to change):
 
-- 7-segment display is **common cathode** (a segment lights when its pin is HIGH).
-- A digit turns on when its pin is **HIGH** (through the transistor).
-- The IR sensor output is **LOW when a car is in the slot** (most IR modules work like this).
-- The ADC reads channels 0..7 only (A0..A7). The pot is on A0.
+| Option | Default | Meaning |
+|--------|---------|---------|
+| `SEG7_COMMON_ANODE` | 0 | 0 = common cathode (segment on = HIGH), 1 = common anode |
+| `SEG7_DIGIT_ON_LEVEL` | 1 | pin level that turns a digit on. 1 = through an NPN transistor, 0 = common cathode pin straight to the board |
+| `IR_ACTIVE_LOW` | 1 | 1 = IR output is LOW when a car is there (most modules) |
+
+To move a part to another pin, change its `_PORT` / `_PIN` line in board.h.
+To add a second switch, add `SW_2`, its port/pin, raise `SW_COUNT`, and add
+one `case` in `drivers/sw/sw.c`.
 
 ---
 
@@ -244,8 +325,8 @@ Build each one with `make TEST=<name>` and upload with `make flash TEST=<name>`.
 | Upload says "permission denied" | Add yourself to `dialout` (step 5) and log in again |
 | Upload says "can't open device" or timeouts | Check the port with `ls /dev/ttyACM* /dev/ttyUSB*` and pass it with `PORT=...`. Try another USB cable (some cables are charge-only) |
 | An LED never lights | It may be backwards: the long leg goes to the resistor side, the short leg to GND |
-| 7-segment shows nothing or wrong segments | Check that it is common cathode and that the transistors are wired as in the table |
-| OCCUPIED LED is on when the slot is empty | Your IR module may output HIGH for "car there". The check in `drivers/ir/ir.c` must be flipped |
+| 7-segment shows nothing or wrong segments | Check the transistors are wired as in the table. Check `SEG7_COMMON_ANODE` and `SEG7_DIGIT_ON_LEVEL` in board.h |
+| OCCUPIED LED is on when the slot is empty | Your IR module may output HIGH for "car there". Set `IR_ACTIVE_LOW` to 0 in board.h |
 | Distance is always `--` | Check TRIG/ECHO are not swapped and the sensor has 5V and GND |
 
 Nothing here has been tested on a real board yet. Every test builds with
@@ -263,7 +344,7 @@ The chip has several timers. Each driver gets its own, so they never fight:
 |-------|---------|-------|--------|
 | Timer0 | seg7 | CTC mode, clock / 256, OCR0A = 124 | interrupt every 2 ms, shows the next digit |
 | Timer1 | timer | CTC mode, clock / 64, OCR1A = 249 | interrupt every 1 ms, counts milliseconds |
-| Timer4 | pwm | fast PWM mode 14, clock / 8, ICR4 = 999 | 2 kHz signal on D6 for the buzzer |
+| Timer4 | pwm | fast PWM mode 14, clock / 8, top = ICR4 (999 = 2 kHz) | PWM on D6, D7, D8, same frequency for all |
 | Timer5 | ultra | normal mode, clock / 8 | counts 0.5 us steps to time the echo |
 
 The display has 2 digits but only one set of segment wires. Timer0 shows the
@@ -293,17 +374,23 @@ Datasheet: Atmel ATmega2560, document 2549Q-AVR-02/2014.
 | Register | Address | Datasheet page |
 |----------|---------|----------------|
 | PINA/DDRA/PORTA | 0x20/0x21/0x22 | 96 |
+| PINB/DDRB/PORTB | 0x23/0x24/0x25 | 96 |
 | PINC/DDRC/PORTC | 0x26/0x27/0x28 | 97 |
+| PIND/DDRD/PORTD | 0x29/0x2A/0x2B | 97 |
 | PINE/DDRE/PORTE | 0x2C/0x2D/0x2E | 97-98 |
+| PINF/DDRF/PORTF | 0x2F/0x30/0x31 | 97-98 |
 | PING/DDRG/PORTG | 0x32/0x33/0x34 | 98 |
 | PINH/DDRH/PORTH | 0x100/0x101/0x102 | 98-99 |
+| PINJ/DDRJ/PORTJ | 0x103/0x104/0x105 | 99 |
+| PINK/DDRK/PORTK | 0x106/0x107/0x108 | 99 |
 | PINL/DDRL/PORTL | 0x109/0x10A/0x10B | 100 |
 | SREG | 0x5F | 13 |
 | TCCR0A / TCCR0B / OCR0A / TIMSK0 | 0x44 / 0x45 / 0x47 / 0x6E | 126-131 |
 | TCCR1A / TCCR1B / OCR1AL-H / TIMSK1 | 0x80 / 0x81 / 0x88-0x89 / 0x6F | 154-161 |
-| TCCR4A / TCCR4B / ICR4L-H / OCR4AL-H | 0xA0 / 0xA1 / 0xA6-0xA7 / 0xA8-0xA9 | 154-161 |
+| TCCR4A / TCCR4B / ICR4L-H | 0xA0 / 0xA1 / 0xA6-0xA7 | 154-161 |
+| OCR4AL-H / OCR4BL-H / OCR4CL-H | 0xA8-0xA9 / 0xAA-0xAB / 0xAC-0xAD | 159-160 |
 | TCCR5A / TCCR5B / TCNT5L-H | 0x120 / 0x121 / 0x124-0x125 | 154-158 |
-| ADCL / ADCH / ADCSRA / ADMUX | 0x78 / 0x79 / 0x7A / 0x7C | 281-286 |
+| ADCL / ADCH / ADCSRA / ADCSRB / ADMUX | 0x78 / 0x79 / 0x7A / 0x7B / 0x7C | 281-287 |
 
 ---
 
