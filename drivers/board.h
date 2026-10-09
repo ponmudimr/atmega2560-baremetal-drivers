@@ -30,7 +30,7 @@
 #define SEG7_D2_PORT       'G'
 #define SEG7_D2_PIN        1   /* PG1 = D40, ones */
 #define SEG7_TYPE          SEG7_CATHODE   /* or SEG7_ANODE, from seg7.h */
-#define SEG7_DIGIT_ON      1   /* 1 = digit on when pin high (transistor) */
+#define SEG7_DIGIT_ON      0   /* 0 = digit on when pin low (COM pin direct) */
 
 /* ultrasonic */
 #define ULTRA_TRIG_PORT    'L'
@@ -48,5 +48,8 @@
 
 /* pot on A0 */
 #define POT_CHANNEL        0
+
+/* IR #2 entry sensor, analog out on A0 */
+#define ENTRY_ADC_CHANNEL  0
 
 #endif

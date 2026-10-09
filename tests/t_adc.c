@@ -1,5 +1,6 @@
 /*
- * t_adc.c - pot value / 11 on 7-seg (0..93)
+ * t_adc.c - A0 value / 11 on 7-seg every 200 ms (0..93),
+ *           used to calibrate the IR #2 entry sensor
  * Author: Ponmudi
  */
 
@@ -19,9 +20,9 @@ int main(void)
 
     while (1)
     {
-        raw = adc_read(POT_CHANNEL);              /* 0..1023 */
+        raw = adc_read(ENTRY_ADC_CHANNEL);        /* 0..1023 */
         seg7_show_number((unsigned char)(raw / 11));
-        timer_delay_ms(100);
+        timer_delay_ms(200);
     }
 
     return 0;
