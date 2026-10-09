@@ -549,6 +549,19 @@ Datasheet: Atmel ATmega2560, document 2549Q-AVR-02/2014.
 
 ---
 
+## Team
+
+| Name | Roll No. | Email |
+|------|----------|-------|
+| Ponmudi M R | 7376251EC257 | ponmudimr.ec25@bitsathy.ac.in |
+| Kavin P | 7376251EC199 | kavinp.ec25@bitsathy.ac.in |
+| Pranesh T | 7376251EC263 | pranesht.ec25@bitsathy.ac.in |
+
+Department of ECE, Bannari Amman Institute of Technology (BIT Sathy).
+Presentation: `docs/Smart_Parking_Presentation.pptx`.
+
+---
+
 ## Author
 
 Ponmudi
