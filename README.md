@@ -1,11 +1,18 @@
-# Smart Parking - Day 1 Drivers (Arduino Mega 2560)
+# Smart Parking Assist & Slot Monitoring (Arduino Mega 2560, bare-metal)
 
-This project is the first part of a **smart parking helper**. It measures how
-far a car is from the wall, checks if a parking slot is free, and shows this
-with LEDs, a number display and a buzzer.
+A **smart parking helper** for the 3-day bare-metal embedded hackathon. It
+measures how far a car is from the wall, checks if a parking slot is free,
+and shows this with LEDs, a number display, an LCD and a buzzer.
 
-Day 1 is only about the **drivers**: small pieces of C code that talk to the
-hardware. Day 2 will use them to build the full parking app.
+| Day | Work | Status |
+|-----|------|--------|
+| Day 1 | Drivers: gpio, sw, led, seg7, timer, pwm, adc, ir, ultra + one test each | Done, tested on the board |
+| Day 2 | Parking app (`app/main.c`): state machine, zones, LEDs, 7-seg, buzzer | Done, tested on the board |
+| Day 3 | Optional: LCD and keypad drivers, used by the app | Done, tested on the board |
+| Day 3 | Optional, not done yet: external interrupt, servo barrier, timer input capture for ECHO | Open |
+
+Quick links: [pin map](#4-parts-and-wiring), [the app](#the-parking-app),
+[assumptions](#assumptions), [test results](#test-results-on-the-board).
 
 Author: Ponmudi
 
@@ -302,6 +309,13 @@ Open a terminal and run:
 sudo dnf install avr-gcc avr-libc avrdude make
 ```
 
+If the Arduino IDE is installed, its own copies also work. Put them on the
+PATH for this terminal instead of installing:
+
+```
+export PATH=$HOME/.arduino15/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/bin:$HOME/.arduino15/packages/arduino/tools/avrdude/8.0.0-arduino1/bin:$PATH
+```
+
 - `avr-gcc` turns our C code into a program the chip understands.
 - `avrdude` sends that program to the board over USB.
 - `make` runs the build steps written in the `Makefile`.
@@ -378,8 +392,100 @@ Build each one with `make TEST=<name>` and upload with `make flash TEST=<name>`.
 | LCD lights up but shows nothing, or only boxes | Connect VEE (pin 3) for contrast, try another resistor or turn the pot. Check R/W (pin 5) is on GND |
 | Wrong keypad keys | 1 shows as `*` (rows upside down): change `KEYPAD_ROW_ORDER` in board.h. Columns mixed up: L1..L4 go to D10..D13 |
 
-Nothing here has been tested on a real board yet. Every test builds with
-zero warnings.
+---
+
+## The parking app
+
+`app/main.c` holds the state machine, the sensor decisions and the buzzer
+patterns. It only calls driver functions, never registers.
+
+| From | Condition | To |
+|------|-----------|----|
+| IDLE | IR #1 sees a car (slot full) | OCCUPIED |
+| IDLE | IR #2 sees a car (entry) | MONITOR |
+| OCCUPIED | IR #1 clear | IDLE |
+| MONITOR | IR #1 sees a car | OCCUPIED |
+| MONITOR | STOP zone for 3 s without a break | COMPLETE |
+| MONITOR | IR #2 clear and distance > 99 cm for 2 s | IDLE |
+| COMPLETE | distance > 99 cm (car left) | IDLE |
+| any | push button or keypad `#` | IDLE |
+
+| State | LCD line 1 | 7-segment | LEDs | Buzzer |
+|-------|------------|-----------|------|--------|
+| IDLE | `FREE` | `--` | all off | off |
+| OCCUPIED | `OCCUPIED` | ` F` (full) | blue | off |
+| MONITOR | `PARKING` + zone | distance | one zone LED | zone pattern |
+| COMPLETE | `PARKED` | distance | red | off |
+
+Zones (distance from the ultrasonic sensor, thresholds from the Day 2 brief):
+
+| Distance | Zone | LED | Buzzer |
+|----------|------|-----|--------|
+| > 50 cm | SAFE | green | off |
+| 31..50 cm | CAUTION | yellow | slow beep (100 ms on, 700 ms off) |
+| 16..30 cm | WARNING | spare | fast beep (100 ms on, 200 ms off) |
+| <= 15 cm | STOP | red | always on |
+
+LCD line 2 shows `Dist: NN cm` (or `Dist: --`) and `MUTE` while muted.
+
+Controls: push button or keypad `#` = back to IDLE from any state.
+Keypad `*` = buzzer mute on/off.
+
+Settings at the top of `app/main.c`: `SAFE_CM`, `CAUTION_CM`, `WARNING_CM`,
+`ENTRY_ADC_LEVEL` (IR #2 threshold), `COMPLETE_MS`, `LEAVE_MS`, and
+`USE_LCD` / `USE_KEYPAD` (set to 0 if that part is not wired).
+
+---
+
+## Assumptions
+
+- Board: Arduino Mega 2560 (ATmega2560, 16 MHz), wired exactly as
+  `Smart_Parking_Pin_Connections.pdf` (35 of 70 pins, no pin used twice).
+- 7-segment: two SUN056CC **common cathode** displays, COM pins straight to
+  D41/D40 (no transistors), 1 kohm per segment line.
+- IR #1 (slot) is a digital module, **active low** (0 = object seen).
+- IR #2 (entry) is read with the ADC on A0. Its value goes **low** when a car
+  is near. Threshold 500 of 1023 (`ENTRY_ADC_LEVEL`), 50 counts hysteresis.
+- Buzzer module is driven with PWM at 2 kHz, 50 % duty.
+- The ultrasonic reading is filtered: the app uses the middle value of the
+  last 3 good reads. 5 missed echoes in a row = no car (999 cm).
+- "Parked" = STOP zone without a break for 3 s.
+- Keypad: this 4x4 keypad's R1 wire is its **bottom** row, so board.h sets
+  `KEYPAD_ROW_ORDER` to `KEYPAD_ROWS_REVERSED`.
+- LCD: JHD162A in 4-bit mode, R/W tied to GND (write only, fixed delays
+  instead of the busy flag).
+- Ultrasonic ECHO is timed by polling Timer5, not input capture.
+
+---
+
+## Test results (on the board)
+
+Tested on 2026-10-09 on the wired board (Mega 2560 clone, CH340, `/dev/ttyUSB0`).
+Every program builds with zero warnings (`-Wall -Wextra`).
+
+| Test | Result | Notes |
+|------|--------|-------|
+| `t_led_sw` | Pass | 5 LEDs one every 2 s, STOP LED follows the button |
+| `t_timer` | Pass | 1 s blink |
+| `t_seg7` | Pass | counts 0..99, tens left, ones right |
+| `t_ir` | Pass | 0/1 and blue LED. A loose D26 wire was found and fixed |
+| `t_ultra` | Pass | flickered with single reads, steady after averaging 3 reads |
+| `t_pwm` | Pass | tone changes every second |
+| `t_adc` | Pass | IR #2: high when clear, low when blocked |
+| `t_gate` | Pass | Day 1 gate: distance when free, `--` + blue LED when occupied |
+| `t_lcd` | Pass | needed VEE (contrast) wired to show text |
+| `t_keypad` | Pass | after the row-order fix (key 1 used to read as `*`) |
+
+Full app, step by step:
+
+| Step | Result |
+|------|--------|
+| 1. Start: FREE, `--`, LEDs off, silent | Pass |
+| 2. Block IR #2: PARKING, distance, green SAFE LED | Pass |
+| 3. Move closer: CAUTION / WARNING / STOP with LED, LCD and buzzer | Pass |
+| 4. STOP for 3 s: PARKED, buzzer off. Object away: FREE | Pass |
+| 5. Block IR #1: OCCUPIED, blue LED, `F`. Clear: FREE | Pass |
+| 6. `*` mutes, `#` and the push button reset to FREE | Pass |
 
 ---
 
