@@ -79,7 +79,7 @@ call driver functions. This is what the hackathon asks for.
 ### Folders
 
 ```
-app/main.c        the parking app (Day 2, empty for now)
+app/main.c        the parking app (Day 2, LCD and keypad Day 3)
 drivers/          all the drivers, one folder each
   regs.h          register addresses (from the datasheet), used by all drivers
   board.h         this project's wiring and options (only tests/app use it)
@@ -91,7 +91,9 @@ drivers/          all the drivers, one folder each
   ir/             ir.c/.h     IR sensor: is the slot occupied?
   ultra/          ultra.c/.h  ultrasonic sensor: distance in cm
   pwm/            pwm.c/.h    PWM on D6/D7/D8 (buzzer sound)
-  adc/            adc.c/.h    read a voltage on A0..A15 (the knob / potentiometer)
+  adc/            adc.c/.h    read a voltage on A0..A15 (IR #2 entry sensor)
+  lcd/            lcd.c/.h    16x2 text display (JHD162A), 4-bit
+  keypad/         keypad.c/.h 4x4 keypad
 tests/            one small test program for each driver
 Makefile          the build instructions (used by the `make` command)
 ```
@@ -214,15 +216,34 @@ all pins are inputs after reset.
 | `adc_read_avg(ch, n)` | average of n reads (1..16) |
 | `adc_to_mv(raw)` | 0..1023 to 0..5000 mV |
 
+**lcd**: 16x2 text LCD (HD44780 / JHD162A), 4-bit mode, write only (R/W to GND).
+Uses short busy waits, no timer.
+
+| Function | What it does |
+|----------|--------------|
+| `lcd_init(rs_port, rs_pin, e_port, e_pin, data_port, data_first_pin)` | DB4..DB7 on 4 pins in a row from `data_first_pin` (0..4). Runs the start sequence (about 60 ms) and clears. Returns 1, or 0 for wrong pins |
+| `lcd_clear()` | clear, cursor to row 0, col 0 (about 2 ms) |
+| `lcd_goto(row, col)` | row 0..1, col 0..15 |
+| `lcd_putc(c)` / `lcd_print(text)` | one character / a text at the cursor |
+| `lcd_print_number(num)` | 0..65535, no leading zeros |
+
+**keypad**: 4x4 matrix keypad, keys `123A / 456B / 789C / *0#D`.
+
+| Function | What it does |
+|----------|--------------|
+| `keypad_init(row_port, row_first_pin, col_port, col_first_pin)` | rows R1..R4 and columns L1..L4, each on 4 pins in a row (first pin 0..4). Also starts the timer. Returns 1, or 0 for wrong pins |
+| `keypad_get_key()` | key held now, or `KEYPAD_NO_KEY` (0) |
+| `keypad_was_pressed()` | key once per press, 20 ms debounce, else `KEYPAD_NO_KEY`. Call it often in the loop |
+
 ---
 
 ## 4. Parts and wiring
 
-You need: the Mega board, a USB cable, a breadboard, jumper wires, 5 LEDs,
-resistors (220 ohm for LEDs and segments, 1k for transistors), a push
-button, a 2-digit common-cathode 7-segment display, 2 NPN transistors
-(for example BC547), an HC-SR04 ultrasonic sensor, an IR obstacle sensor
-module, a passive buzzer and a 10k potentiometer.
+The full sheet is `Smart_Parking_Pin_Connections.pdf`. You need: the Mega
+board, a USB cable, a breadboard, jumper wires, 5 LEDs, 5 x 220 ohm (LEDs),
+8 x 1 kohm (7-segment lines), a push button, two SUN056CC common-cathode
+7-segment displays, an HC-SR04 ultrasonic sensor, two IR sensor modules and
+a buzzer module. Day 3: a JHD162A 16x2 LCD and a 4x4 keypad.
 
 **GND** means the board's GND pin and **5V** means the board's 5V pin. All
 parts must share the same GND.
@@ -235,7 +256,7 @@ parts must share the same GND.
 | LED STOP | D25 | PA3 | same as above |
 | LED OCCUPIED | D26 | PA4 | same as above |
 | Push button | D2 | PE4 | one leg to D2, other leg to GND (no resistor needed) |
-| 7-seg segment a | D37 | PC0 | each segment through a 220 ohm resistor |
+| 7-seg segment a | D37 | PC0 | same pin of both displays on one wire, one 1 kohm resistor per line |
 | 7-seg segment b | D36 | PC1 | |
 | 7-seg segment c | D35 | PC2 | |
 | 7-seg segment d | D34 | PC3 | |
@@ -243,13 +264,18 @@ parts must share the same GND.
 | 7-seg segment f | D32 | PC5 | |
 | 7-seg segment g | D31 | PC6 | |
 | 7-seg dot (dp) | D30 | PC7 | |
-| 7-seg digit 1 (tens, left) | D41 | PG0 | D41 -> 1k -> transistor base, emitter -> GND, collector -> digit 1 common pin |
-| 7-seg digit 2 (ones, right) | D40 | PG1 | same, with the second transistor |
+| 7-seg digit 1 (tens, left) | D41 | PG0 | left display COM (pin 3 or 8) straight to D41, no resistor |
+| 7-seg digit 2 (ones, right) | D40 | PG1 | right display COM straight to D40 |
 | Ultrasonic TRIG | D47 | PL2 | sensor VCC -> 5V, GND -> GND |
 | Ultrasonic ECHO | D48 | PL1 | |
-| IR sensor OUT | D46 | PL3 | sensor VCC -> 5V, GND -> GND |
-| Buzzer + | D6 | PH3 (OC4A, PWM channel A) | buzzer - -> GND |
-| Potentiometer middle leg | A0 | ADC0 | outer legs -> 5V and GND |
+| IR #1 (slot) D0 | D46 | PL3 | sensor VCC -> 5V, GND -> GND |
+| IR #2 (entry) A0 | A0 | PF0 (ADC0) | sensor VCC -> 5V, GND -> GND |
+| Buzzer module S | D6 | PH3 (OC4A, PWM channel A) | middle -> 5V, - -> GND |
+| LCD RS (4) | A8 | PK0 | LCD 1 VSS -> GND, 2 VCC -> 5V, 5 R/W -> GND |
+| LCD E (6) | A9 | PK1 | 3 VEE -> about 1 kohm to GND, or pot middle (contrast) |
+| LCD DB4..DB7 (11-14) | A12..A15 | PK4..PK7 | DB0..DB3 not connected. 15 LED+ -> 220 ohm -> 5V, 16 LED- -> GND |
+| Keypad R1..R4 | D53, D52, D51, D50 | PB0..PB3 | |
+| Keypad L1..L4 | D10, D11, D12, D13 | PB4..PB7 | the board's "L" LED (D13) may flicker while keys are read |
 
 ### This project's settings (board.h)
 
@@ -260,7 +286,7 @@ to the init functions. If your parts work differently, change these lines
 | Setting | Default | Meaning |
 |---------|---------|---------|
 | `SEG7_TYPE` | `SEG7_CATHODE` | or `SEG7_ANODE` for a common anode display |
-| `SEG7_DIGIT_ON` | 1 | pin level that turns a digit on. 1 = through an NPN transistor, 0 = common cathode pin straight to the board |
+| `SEG7_DIGIT_ON` | 0 | pin level that turns a digit on. 1 = through an NPN transistor, 0 = common cathode pin straight to the board |
 | `IR_TYPE` | `IR_ACTIVE_LOW` | or `IR_ACTIVE_HIGH` if your IR module gives 1 when a car is there |
 
 To move a part to another pin, change its `_PORT` / `_PIN` line in board.h.
@@ -328,8 +354,10 @@ Build each one with `make TEST=<name>` and upload with `make flash TEST=<name>`.
 | `t_ir` | The OCCUPIED LED is on when something is in front of the IR sensor |
 | `t_ultra` | The display shows the distance in cm. It shows `--` if the distance is above 99 cm or there is no echo |
 | `t_pwm` | The buzzer sounds and changes tone strength every second (25%, 50%, 75%) |
-| `t_adc` | Turning the knob changes the number on the display (0..93) |
+| `t_adc` | The display shows the IR #2 entry sensor value on A0 / 11 (0..93). Use it to set `ENTRY_ADC_LEVEL` in app/main.c |
 | `t_gate` | If the IR sensor sees a car: `--` and the OCCUPIED LED. If not: the distance in cm |
+| `t_lcd` | LCD line 1 shows `Smart Parking`, line 2 counts seconds |
+| `t_keypad` | Each key you press is added to LCD line 2 and shown on the 7-segment (0-9, A-D, `--` for `#`). `*` clears the LCD |
 
 `t_gate` is the Day-1 "gate" demo: ultrasonic + IR + display working together.
 
@@ -343,9 +371,11 @@ Build each one with `make TEST=<name>` and upload with `make flash TEST=<name>`.
 | Upload says "permission denied" | Add yourself to `dialout` (step 5) and log in again |
 | Upload says "can't open device" or timeouts | Check the port with `ls /dev/ttyACM* /dev/ttyUSB*` and pass it with `PORT=...`. Try another USB cable (some cables are charge-only) |
 | An LED never lights | It may be backwards: the long leg goes to the resistor side, the short leg to GND |
-| 7-segment shows nothing or wrong segments | Check the transistors are wired as in the table. Check `SEG7_TYPE` and `SEG7_DIGIT_ON` in board.h |
+| 7-segment shows nothing or wrong segments | Check both displays are common cathode (SUN056CC) and the COM pins go to D41 and D40. Check `SEG7_TYPE` and `SEG7_DIGIT_ON` in board.h |
 | OCCUPIED LED is on when the slot is empty | Your IR module may output HIGH for "car there". Set `IR_TYPE` to `IR_ACTIVE_HIGH` in board.h |
 | Distance is always `--` | Check TRIG/ECHO are not swapped and the sensor has 5V and GND |
+| LCD lights up but shows nothing, or only boxes | Connect VEE (pin 3) for contrast, try another resistor or turn the pot. Check R/W (pin 5) is on GND |
+| Wrong keypad keys | Rows and columns swapped: R1..R4 go to D53..D50, L1..L4 to D10..D13 |
 
 Nothing here has been tested on a real board yet. Every test builds with
 zero warnings.

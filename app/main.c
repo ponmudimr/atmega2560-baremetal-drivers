@@ -13,6 +13,8 @@
 #include "ultra.h"
 #include "pwm.h"
 #include "adc.h"
+#include "lcd.h"
+#include "keypad.h"
 
 /* settings */
 #define SAFE_CM            50     /* above this = SAFE */
@@ -30,8 +32,11 @@
 #define NO_ECHO_LIMIT      5      /* no-echos in a row = no car */
 #define FAR_CM             999    /* distance used for "no car" */
 
-#define USE_LCD            0      /* phase 4 */
-#define USE_KEYPAD         0      /* phase 4 */
+#define USE_LCD            1      /* 0 = no LCD wired */
+#define USE_KEYPAD         1      /* 0 = no keypad wired */
+#define LCD_MS             250    /* LCD refresh period */
+#define KEY_RESET          '#'    /* keypad: back to idle, like the switch */
+#define KEY_MUTE           '*'    /* keypad: buzzer mute on/off */
 
 /* zones */
 #define ZONE_SAFE      0
@@ -73,6 +78,17 @@ static unsigned long last_adc;
 static unsigned char buzzer_mode = ZONE_NONE;
 static unsigned char buzzer_is_on = 0;
 static unsigned long buzzer_time;
+static unsigned char buzzer_muted = 0;   /* 1 = buzzer stays off */
+
+/* keypad */
+static unsigned char reset_request = 0;  /* 1 = '#' pressed */
+
+#if USE_LCD
+/* LCD text wanted now and text on the screen */
+static char lcd_text[LCD_ROWS][LCD_COLS + 1];
+static char lcd_shown[LCD_ROWS][LCD_COLS + 1];
+static unsigned long last_lcd;
+#endif
 
 /* zone for a distance in cm */
 static unsigned char get_zone(unsigned int cm)
@@ -163,6 +179,23 @@ static void read_entry(void)
     }
 }
 
+#if USE_KEYPAD
+/* '#' asks for a reset, '*' turns the buzzer mute on/off */
+static void read_keypad(void)
+{
+    char k = keypad_was_pressed();
+
+    if (k == KEY_RESET)
+    {
+        reset_request = 1;
+    }
+    else if (k == KEY_MUTE)
+    {
+        buzzer_muted = !buzzer_muted;
+    }
+}
+#endif
+
 /* read all sensors */
 static void read_inputs(void)
 {
@@ -170,6 +203,9 @@ static void read_inputs(void)
     read_distance();
     read_entry();
     zone = get_zone(distance);
+#if USE_KEYPAD
+    read_keypad();
+#endif
 }
 
 /* go to a new state and restart its timers */
@@ -183,9 +219,10 @@ static void change_state(unsigned char new_state)
 /* decide the next state */
 static void update_state(void)
 {
-    /* switch: back to idle from any state */
-    if (sw_was_pressed(key))
+    /* switch or '#': back to idle from any state */
+    if (sw_was_pressed(key) || reset_request)
     {
+        reset_request = 0;
         change_state(ST_IDLE);
         return;
     }
@@ -370,6 +407,12 @@ static void buzzer_beep(unsigned int on_ms, unsigned int off_ms)
 /* buzzer pattern for buzzer_mode, called every loop */
 static void buzzer_update(void)
 {
+    if (buzzer_muted)
+    {
+        buzzer_set(0);
+        return;
+    }
+
     switch (buzzer_mode)
     {
         case ZONE_CAUTION:
@@ -390,6 +433,126 @@ static void buzzer_update(void)
     }
 }
 
+#if USE_LCD
+/* write text into an LCD line from col, cut at the line end */
+static void lcd_text_put(char *line, unsigned char col, const char *text)
+{
+    while (*text != '\0' && col < LCD_COLS)
+    {
+        line[col] = *text;
+        col++;
+        text++;
+    }
+}
+
+/* number of characters in text */
+static unsigned char text_len(const char *text)
+{
+    unsigned char n = 0;
+
+    while (text[n] != '\0')
+    {
+        n++;
+    }
+    return n;
+}
+
+/* 1 if two LCD lines are the same */
+static unsigned char lcd_line_same(const char *a, const char *b)
+{
+    unsigned char i;
+
+    for (i = 0; i < LCD_COLS; i++)
+    {
+        if (a[i] != b[i])
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/* make the 2 LCD lines for the state */
+static void lcd_make_text(void)
+{
+    static const char *state_name[4] = { "FREE", "OCCUPIED", "PARKING", "PARKED" };
+    static const char *zone_name[4] = { "SAFE", "CAUTION", "WARNING", "STOP" };
+    char number[3];
+    unsigned char row;
+    unsigned char i;
+
+    for (row = 0; row < LCD_ROWS; row++)
+    {
+        for (i = 0; i < LCD_COLS; i++)
+        {
+            lcd_text[row][i] = ' ';
+        }
+        lcd_text[row][LCD_COLS] = '\0';
+    }
+
+    /* line 1: state, zone on the right while parking */
+    if (state <= ST_COMPLETE)
+    {
+        lcd_text_put(lcd_text[0], 0, state_name[state]);
+    }
+    if (state == ST_MONITOR && zone <= ZONE_STOP)
+    {
+        lcd_text_put(lcd_text[0], LCD_COLS - text_len(zone_name[zone]), zone_name[zone]);
+    }
+
+    /* line 2: distance, MUTE on the right */
+    lcd_text_put(lcd_text[1], 0, "Dist:");
+    if (distance > 99)
+    {
+        lcd_text_put(lcd_text[1], 6, "--");
+    }
+    else
+    {
+        number[0] = '0' + distance / 10;
+        number[1] = '0' + distance % 10;
+        number[2] = '\0';
+        if (number[0] == '0')
+        {
+            number[0] = ' ';   /* no leading zero */
+        }
+        lcd_text_put(lcd_text[1], 6, number);
+        lcd_text_put(lcd_text[1], 9, "cm");
+    }
+    if (buzzer_muted)
+    {
+        lcd_text_put(lcd_text[1], 12, "MUTE");
+    }
+}
+
+/* every LCD_MS, write only the lines that changed */
+static void lcd_update(void)
+{
+    unsigned char row;
+    unsigned char i;
+
+    if (!timer_elapsed(last_lcd, LCD_MS))
+    {
+        return;
+    }
+    last_lcd = timer_millis();
+
+    lcd_make_text();
+
+    for (row = 0; row < LCD_ROWS; row++)
+    {
+        if (!lcd_line_same(lcd_text[row], lcd_shown[row]))
+        {
+            lcd_goto(row, 0);
+            lcd_print(lcd_text[row]);
+            for (i = 0; i <= LCD_COLS; i++)
+            {
+                lcd_shown[row][i] = lcd_text[row][i];
+            }
+        }
+    }
+}
+#endif
+
 int main(void)
 {
     timer_init();
@@ -406,12 +569,21 @@ int main(void)
     seg7_init(SEG7_SEG_PORT, SEG7_D1_PORT, SEG7_D1_PIN, SEG7_D2_PORT, SEG7_D2_PIN,
               SEG7_TYPE, SEG7_DIGIT_ON);
     adc_init();
+#if USE_LCD
+    lcd_init(LCD_RS_PORT, LCD_RS_PIN, LCD_E_PORT, LCD_E_PIN, LCD_DATA_PORT, LCD_DATA_PIN);
+#endif
+#if USE_KEYPAD
+    keypad_init(KEYPAD_ROW_PORT, KEYPAD_ROW_PIN, KEYPAD_COL_PORT, KEYPAD_COL_PIN);
+#endif
 
     pwm_init(BUZZER_PWM_CH);              /* 2 kHz, output off */
     pwm_set_duty(BUZZER_PWM_CH, 50);
 
     last_measure = timer_millis();
     last_adc = timer_millis();
+#if USE_LCD
+    last_lcd = timer_millis() - LCD_MS;   /* first update at once */
+#endif
     change_state(ST_IDLE);
 
     while (1)
@@ -420,6 +592,9 @@ int main(void)
         update_state();
         update_outputs();
         buzzer_update();
+#if USE_LCD
+        lcd_update();
+#endif
     }
 
     return 0;

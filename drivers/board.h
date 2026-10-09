@@ -52,4 +52,18 @@
 /* IR #2 entry sensor, analog out on A0 */
 #define ENTRY_ADC_CHANNEL  0
 
+/* LCD JHD162A, 4-bit, R/W to GND */
+#define LCD_RS_PORT        'K'
+#define LCD_RS_PIN         0   /* PK0 = A8 */
+#define LCD_E_PORT         'K'
+#define LCD_E_PIN          1   /* PK1 = A9 */
+#define LCD_DATA_PORT      'K'
+#define LCD_DATA_PIN       4   /* PK4..PK7 = A12..A15, DB4..DB7 */
+
+/* 4x4 keypad */
+#define KEYPAD_ROW_PORT    'B'
+#define KEYPAD_ROW_PIN     0   /* PB0..PB3 = D53..D50, R1..R4 */
+#define KEYPAD_COL_PORT    'B'
+#define KEYPAD_COL_PIN     4   /* PB4..PB7 = D10..D13, L1..L4 */
+
 #endif
