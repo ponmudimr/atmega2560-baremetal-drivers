@@ -65,5 +65,6 @@
 #define KEYPAD_ROW_PIN     0   /* PB0..PB3 = D53..D50, R1..R4 */
 #define KEYPAD_COL_PORT    'B'
 #define KEYPAD_COL_PIN     4   /* PB4..PB7 = D10..D13, L1..L4 */
+#define KEYPAD_ROW_ORDER   KEYPAD_ROWS_REVERSED   /* this keypad: R1 = bottom row, from keypad.h */
 
 #endif

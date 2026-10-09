@@ -23,6 +23,7 @@ static char keypad_row_port;
 static unsigned char keypad_row_pin;
 static char keypad_col_port;
 static unsigned char keypad_col_pin;
+static unsigned char keypad_reversed;   /* 1 = first row pin is the bottom row */
 
 /* 1 after keypad_init worked */
 static unsigned char keypad_ok = 0;
@@ -52,9 +53,10 @@ static unsigned char keypad_pins_ok(char port, unsigned char first_pin)
     return 1;
 }
 
-/* set pins, starts timer, returns 1 ok or 0 wrong pins */
+/* set pins and row order, starts timer, returns 1 ok or 0 wrong pins */
 unsigned char keypad_init(char row_port, unsigned char row_first_pin,
-                          char col_port, unsigned char col_first_pin)
+                          char col_port, unsigned char col_first_pin,
+                          unsigned char row_order)
 {
     unsigned char i;
 
@@ -67,6 +69,7 @@ unsigned char keypad_init(char row_port, unsigned char row_first_pin,
     keypad_row_pin = row_first_pin;
     keypad_col_port = col_port;
     keypad_col_pin = col_first_pin;
+    keypad_reversed = (row_order == KEYPAD_ROWS_REVERSED);
 
     for (i = 0; i < 4; i++)
     {
@@ -103,7 +106,14 @@ char keypad_get_key(void)
         {
             if (gpio_get(keypad_col_port, keypad_col_pin + col) == 0)
             {
-                key = keypad_map[row][col];
+                if (keypad_reversed)
+                {
+                    key = keypad_map[3 - row][col];
+                }
+                else
+                {
+                    key = keypad_map[row][col];
+                }
                 break;
             }
         }

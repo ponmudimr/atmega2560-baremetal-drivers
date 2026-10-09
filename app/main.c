@@ -61,6 +61,7 @@ static unsigned char rear;
 /* inputs */
 static unsigned int distance = FAR_CM;   /* last good distance in cm */
 static unsigned char no_echo_count = 0;
+static unsigned int last_cm[3] = { FAR_CM, FAR_CM, FAR_CM };   /* last 3 good reads */
 static unsigned char slot_full = 0;      /* 1 = IR #1 sees a car */
 static unsigned char entry_seen = 0;     /* 1 = IR #2 sees a car */
 static unsigned char zone = ZONE_SAFE;
@@ -111,6 +112,23 @@ static unsigned char get_zone(unsigned int cm)
     }
 }
 
+/* middle value of 3, so one wrong read is ignored */
+static unsigned int median3(unsigned int a, unsigned int b, unsigned int c)
+{
+    if ((a >= b && a <= c) || (a <= b && a >= c))
+    {
+        return a;
+    }
+    else if ((b >= a && b <= c) || (b <= a && b >= c))
+    {
+        return b;
+    }
+    else
+    {
+        return c;
+    }
+}
+
 /* measure distance every MEASURE_MS, keep last good value on no echo */
 static void read_distance(void)
 {
@@ -138,7 +156,10 @@ static void read_distance(void)
     else
     {
         no_echo_count = 0;
-        distance = cm;
+        last_cm[0] = last_cm[1];
+        last_cm[1] = last_cm[2];
+        last_cm[2] = cm;
+        distance = median3(last_cm[0], last_cm[1], last_cm[2]);
     }
 }
 
@@ -573,7 +594,8 @@ int main(void)
     lcd_init(LCD_RS_PORT, LCD_RS_PIN, LCD_E_PORT, LCD_E_PIN, LCD_DATA_PORT, LCD_DATA_PIN);
 #endif
 #if USE_KEYPAD
-    keypad_init(KEYPAD_ROW_PORT, KEYPAD_ROW_PIN, KEYPAD_COL_PORT, KEYPAD_COL_PIN);
+    keypad_init(KEYPAD_ROW_PORT, KEYPAD_ROW_PIN, KEYPAD_COL_PORT, KEYPAD_COL_PIN,
+                KEYPAD_ROW_ORDER);
 #endif
 
     pwm_init(BUZZER_PWM_CH);              /* 2 kHz, output off */

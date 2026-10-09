@@ -1,5 +1,5 @@
 /*
- * t_ultra.c - distance on 7-seg every 100 ms, dash if > 99 or no echo
+ * t_ultra.c - distance (average of 3) on 7-seg, dash if > 99 or no echo
  * Author: Ponmudi
  */
 
@@ -20,7 +20,7 @@ int main(void)
 
     while (1)
     {
-        cm = ultra_get_cm(rear);
+        cm = ultra_get_cm_avg(rear, 3);   /* skips missed echoes */
 
         if (cm > 99)
         {

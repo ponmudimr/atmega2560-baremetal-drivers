@@ -14,7 +14,8 @@ int main(void)
     char key;
     unsigned char col = 0;
 
-    keypad_init(KEYPAD_ROW_PORT, KEYPAD_ROW_PIN, KEYPAD_COL_PORT, KEYPAD_COL_PIN);
+    keypad_init(KEYPAD_ROW_PORT, KEYPAD_ROW_PIN, KEYPAD_COL_PORT, KEYPAD_COL_PIN,
+                KEYPAD_ROW_ORDER);
     lcd_init(LCD_RS_PORT, LCD_RS_PIN, LCD_E_PORT, LCD_E_PIN, LCD_DATA_PORT, LCD_DATA_PIN);
     seg7_init(SEG7_SEG_PORT, SEG7_D1_PORT, SEG7_D1_PIN, SEG7_D2_PORT, SEG7_D2_PIN,
               SEG7_TYPE, SEG7_DIGIT_ON);

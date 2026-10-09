@@ -231,7 +231,7 @@ Uses short busy waits, no timer.
 
 | Function | What it does |
 |----------|--------------|
-| `keypad_init(row_port, row_first_pin, col_port, col_first_pin)` | rows R1..R4 and columns L1..L4, each on 4 pins in a row (first pin 0..4). Also starts the timer. Returns 1, or 0 for wrong pins |
+| `keypad_init(row_port, row_first_pin, col_port, col_first_pin, row_order)` | rows R1..R4 and columns L1..L4, each on 4 pins in a row (first pin 0..4). `row_order` = `KEYPAD_ROWS_NORMAL` (R1 = top row 1 2 3 A) or `KEYPAD_ROWS_REVERSED` (R1 = bottom row). Also starts the timer. Returns 1, or 0 for wrong pins |
 | `keypad_get_key()` | key held now, or `KEYPAD_NO_KEY` (0) |
 | `keypad_was_pressed()` | key once per press, 20 ms debounce, else `KEYPAD_NO_KEY`. Call it often in the loop |
 
@@ -288,6 +288,7 @@ to the init functions. If your parts work differently, change these lines
 | `SEG7_TYPE` | `SEG7_CATHODE` | or `SEG7_ANODE` for a common anode display |
 | `SEG7_DIGIT_ON` | 0 | pin level that turns a digit on. 1 = through an NPN transistor, 0 = common cathode pin straight to the board |
 | `IR_TYPE` | `IR_ACTIVE_LOW` | or `IR_ACTIVE_HIGH` if your IR module gives 1 when a car is there |
+| `KEYPAD_ROW_ORDER` | `KEYPAD_ROWS_REVERSED` | our keypad's R1 wire is its bottom row. Use `KEYPAD_ROWS_NORMAL` if key 1 shows as `*` |
 
 To move a part to another pin, change its `_PORT` / `_PIN` line in board.h.
 
@@ -352,7 +353,7 @@ Build each one with `make TEST=<name>` and upload with `make flash TEST=<name>`.
 | `t_timer` | The SAFE LED turns on and off every 1 second |
 | `t_seg7` | The display counts 0, 1, 2 ... 99 and starts again (0..9 use only the right digit) |
 | `t_ir` | The OCCUPIED LED is on when something is in front of the IR sensor |
-| `t_ultra` | The display shows the distance in cm. It shows `--` if the distance is above 99 cm or there is no echo |
+| `t_ultra` | The display shows the distance in cm (average of 3 reads). It shows `--` if the distance is above 99 cm or there is no echo |
 | `t_pwm` | The buzzer sounds and changes tone strength every second (25%, 50%, 75%) |
 | `t_adc` | The display shows the IR #2 entry sensor value on A0 / 11 (0..93). Use it to set `ENTRY_ADC_LEVEL` in app/main.c |
 | `t_gate` | If the IR sensor sees a car: `--` and the OCCUPIED LED. If not: the distance in cm |
@@ -375,7 +376,7 @@ Build each one with `make TEST=<name>` and upload with `make flash TEST=<name>`.
 | OCCUPIED LED is on when the slot is empty | Your IR module may output HIGH for "car there". Set `IR_TYPE` to `IR_ACTIVE_HIGH` in board.h |
 | Distance is always `--` | Check TRIG/ECHO are not swapped and the sensor has 5V and GND |
 | LCD lights up but shows nothing, or only boxes | Connect VEE (pin 3) for contrast, try another resistor or turn the pot. Check R/W (pin 5) is on GND |
-| Wrong keypad keys | Rows and columns swapped: R1..R4 go to D53..D50, L1..L4 to D10..D13 |
+| Wrong keypad keys | 1 shows as `*` (rows upside down): change `KEYPAD_ROW_ORDER` in board.h. Columns mixed up: L1..L4 go to D10..D13 |
 
 Nothing here has been tested on a real board yet. Every test builds with
 zero warnings.

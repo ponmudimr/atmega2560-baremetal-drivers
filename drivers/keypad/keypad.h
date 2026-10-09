@@ -6,7 +6,9 @@
 #ifndef KEYPAD_H
 #define KEYPAD_H
 
-#define KEYPAD_NO_KEY  0   /* no key pressed */
+#define KEYPAD_NO_KEY         0   /* no key pressed */
+#define KEYPAD_ROWS_NORMAL    0   /* first row pin = top row (1 2 3 A) */
+#define KEYPAD_ROWS_REVERSED  1   /* first row pin = bottom row (* 0 # D) */
 
 /* keys:  1 2 3 A  (row 1)
           4 5 6 B
@@ -16,9 +18,10 @@
 /* rows R1..R4: 4 pins in a row on row_port from row_first_pin (0..4) */
 /* cols L1..L4: 4 pins in a row on col_port from col_first_pin (0..4) */
 
-/* set pins, starts timer, returns 1 ok or 0 wrong pins */
+/* set pins and row order, starts timer, returns 1 ok or 0 wrong pins */
 unsigned char keypad_init(char row_port, unsigned char row_first_pin,
-                          char col_port, unsigned char col_first_pin);
+                          char col_port, unsigned char col_first_pin,
+                          unsigned char row_order);
 
 /* key held now (no debounce), or KEYPAD_NO_KEY */
 char keypad_get_key(void);

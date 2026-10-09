@@ -27,7 +27,7 @@ int main(void)
     for (i = 0; i < 5; i++)
     {
         led_on(leds[i]);
-        timer_delay_ms(300);
+        timer_delay_ms(2000);   /* 2 s per LED */
     }
 
     led_all_off();
