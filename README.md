@@ -372,6 +372,7 @@ Build each one with `make TEST=<name>` and upload with `make flash TEST=<name>`.
 | `t_adc` | The display shows the IR #2 entry sensor value on A0 / 11 (0..93). Use it to set `ENTRY_ADC_LEVEL` in app/main.c |
 | `t_gate` | If the IR sensor sees a car: `--` and the OCCUPIED LED. If not: the distance in cm |
 | `t_lcd` | LCD line 1 shows `Smart Parking`, line 2 counts seconds |
+| `t_lcd_song` | LCD line 1 shows `Bharathiyar song`, line 2 scrolls the words of *Chinnanjiru Kiliye* (Tamil in English letters) |
 | `t_keypad` | Each key you press is added to LCD line 2 and shown on the 7-segment (0-9, A-D, `--` for `#`). `*` clears the LCD |
 
 `t_gate` is the Day-1 "gate" demo: ultrasonic + IR + display working together.
